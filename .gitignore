@@ -1,4 +1,4 @@
-node_modules
+.idea
 
 node_modules
 .env
@@ -10,4 +10,5 @@ typechain-types
 # Hardhat files
 cache
 artifacts
+solc
 
