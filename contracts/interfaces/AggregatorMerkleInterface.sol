@@ -1,15 +1,8 @@
 pragma solidity ^0.8.0;
 
 interface AggregatorMerkleInterface {
-  function version() external view returns (uint256);
-
-  function isLocked()
-    external
-    view
-    returns (
-      bool isLocked
-    );
-
+  function isLocked() external view returns (bool);
+  function setLock(bool isLock) external;
   function latestMerkleRoundData()
     external
     view

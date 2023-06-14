@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity >=0.8.0 <0.9.0;
+pragma solidity >=0.7.6 <0.9.0;
+import "hardhat/console.sol";
 import {IMerkleDistributor} from "./interfaces/IMerkleDistributor.sol";
 import "./interfaces/AggregatorMerkleInterface.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract MerkleDistributor is IMerkleDistributor {
     using SafeERC20 for IERC20;
     AggregatorMerkleInterface internal merkleAggregator;
-    address public   token;
+    address override public   token;
     uint256 public   projectId;
-    bytes32 public   merkleRoot;
+    bytes32 override public   merkleRoot;
     uint256 public   curBatch;
     uint80  public   roundId;
     uint256 public   startedAt;
@@ -56,7 +58,14 @@ contract MerkleDistributor is IMerkleDistributor {
             while(claimedkeys.length > 0){
                 claimedkeys.pop();
             }
-        }
+            curBatch = curBatchNew;
+            merkleRoot = merkleRootNew;
+            roundId = roundIdNew;
+            startedAt = startedAtNew;
+            updatedAt = updatedAtNew;
+            //console.log("updateRoot curBatch:%d roundId:%d\n", curBatch,roundId);
+            //console.logBytes32(merkleRoot);
+        }   
         return true;
     }
 
@@ -82,16 +91,18 @@ contract MerkleDistributor is IMerkleDistributor {
     public  virtual override returns (bool) {
         if(!updateRoot()) return false;
         if(batch != curBatch) return false;
-        if (isClaimed(curBatch,index)) return false;
-
+        if (isClaimed(curBatch,index)){
+            //console.log("isClaimed\n");
+            return false;
+        }
         // Verify the merkle proof.
         bytes32 node = keccak256(abi.encodePacked(index, account, amount));
         if (!MerkleProof.verify(merkleProof, merkleRoot, node)) return false;
 
         // Mark it claimed and send the token.
         _setClaimed(index);
-
-        IERC20(token).safeTransfer(account, amount);
+        console.log("claim 02 toarr:%s, amount:%d, thisaddr:%s\n", account, amount, address(this));
+        IERC20(token).transfer(account, amount);
         emit Claimed(batch, index, account, amount);
         return true;
     }

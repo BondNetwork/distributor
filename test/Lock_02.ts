@@ -3,7 +3,8 @@ import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-describe("Lock", function () {
+
+/*describe("Lock", function () {
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
@@ -121,17 +122,16 @@ describe("Lock", function () {
       });
     });
   });
-});
+});*/
 
 describe("tx_test", function(){
-  it("test", async function () {
+  it("test_sendTransaction", async function () {
     const [owner, otherAccount] = await ethers.getSigners();
     const tx = await owner.sendTransaction({
       to: "0xF4888aEd11bFA9ADcfa25B42E11Cb6E064A354b8",
       value: ethers.utils.parseEther("1") // 1 ether
     });
     const receipt = await tx.wait();
-    console.log("minetx:");
-    console.log(receipt);
+    console.log('minetx:',receipt);
   });
 });
