@@ -31,7 +31,7 @@ contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard {
         projectId = projectId_;
     }
 
-    function updateRoot() public  nonReentrant returns (bool){
+    function updateRoot() private  returns (bool){
         if(merkleAggregator.isLocked())
         {
             return false;
