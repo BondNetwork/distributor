@@ -5,10 +5,10 @@ import {IMerkleDistributor} from "./interfaces/IMerkleDistributor.sol";
 import "./interfaces/AggregatorMerkleInterface.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract MerkleDistributor is IMerkleDistributor {
+contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard {
     using SafeERC20 for IERC20;
     AggregatorMerkleInterface internal merkleAggregator;
     address override public   token;
@@ -31,7 +31,7 @@ contract MerkleDistributor is IMerkleDistributor {
         projectId = projectId_;
     }
 
-    function updateRoot() public  returns (bool){
+    function updateRoot() public  nonReentrant returns (bool){
         if(merkleAggregator.isLocked())
         {
             return false;
@@ -88,7 +88,7 @@ contract MerkleDistributor is IMerkleDistributor {
     }
 
     function claim(uint256 batch, uint256 index, address account, uint256 amount, bytes32[] calldata merkleProof)
-    public  virtual override returns (bool) {
+    public  nonReentrant virtual override returns (bool) {
         if(!updateRoot()) return false;
         if(batch != curBatch) return false;
         if (isClaimed(curBatch,index)){
