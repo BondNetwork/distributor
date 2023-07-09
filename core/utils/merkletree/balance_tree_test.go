@@ -3,25 +3,42 @@ package distributor
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBalanceTree(t *testing.T) {
 	balances := []Balance{
-		{Account: common.HexToAddress("0xF4888aEd11bFA9ADcfa25B42E11Cb6E064A354b8"), Amount: big.NewInt(2000000001)},
-		{Account: common.HexToAddress("0x431aa3467889D68f26E975ED2246b1E2cAd2B3B2"), Amount: big.NewInt(3000000000)},
-		{Account: common.HexToAddress("0x1205FC050610ea92D4A938121f011ce86271C7ce"), Amount: big.NewInt(2500000000)},
-		{Account: common.HexToAddress("0x85bee39F32CeF5522b996290DD50BAd472188A43"), Amount: big.NewInt(100000000)},
-		{Account: common.HexToAddress("0xD1D84F0e28D6fedF03c73151f98dF95139700aa1"), Amount: big.NewInt(200000000)},
-		{Account: common.HexToAddress("0xD1D84F0e28D6fedF03c73151f98dF95139700aa2"), Amount: big.NewInt(300000000)},
-		{Account: common.HexToAddress("0xD1D84F0e28D6fedF03c73151f98dF95139700aa3"), Amount: big.NewInt(400000000)},
-		{Account: common.HexToAddress("0xD1D84F0e28D6fedF03c73151f98dF95139700aa0"), Amount: big.NewInt(500000000)},
+		{Account: common.HexToAddress("0xF4888aEd11bFA9ADcfa25B42E11Cb6E064A354b8"), Amount: big.NewInt(200000000000000000)},
+		{Account: common.HexToAddress("0x431aa3467889D68f26E975ED2246b1E2cAd2B3B2"), Amount: big.NewInt(100000000000000000)},
+		{Account: common.HexToAddress("0x1205FC050610ea92D4A938121f011ce86271C7ce"), Amount: big.NewInt(150000000000000000)},
+		{Account: common.HexToAddress("0x32DA87cffC407d29B104cb4dD47dD8e9b6308e0F"), Amount: big.NewInt(350000000000000000)},
+		{Account: common.HexToAddress("0x9D9812c83bAdb616B9cf984941B539112dC13a64"), Amount: big.NewInt(460000000000000000)},
+		{Account: common.HexToAddress("0x83d9fe2Ce722F534DA63F8e64965d7d7C40c6F24"), Amount: big.NewInt(550000000000000000)},
+		{Account: common.HexToAddress("0x85bee39F32CeF5522b996290DD50BAd472188A43"), Amount: big.NewInt(650000000000000000)},
+		{Account: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"), Amount: big.NewInt(210000000000000000)},
 	}
+	/*fmt.Printf("start0:%s\n", time.Now())
+	for i := 0; i < 10000; i++ {
+		addr := big.Int{}
+		iBig := big.Int{}
+		iBig.SetInt64(int64(i))
+		addr.SetString("0xF4888aEd11bFA9ADcfa25B42E11Cb6E064A354b8", 16)
+		addrR := addr.Add(&iBig, &addr)
+		balances = append(balances, Balance{
+			Account: common.BytesToAddress(addrR.Bytes()),
+			Amount:  big.NewInt(int64(i)),
+		})
+	}*/
+	fmt.Printf("end0:%s\n", time.Now())
+
+	fmt.Printf("start:%s\n", time.Now())
 	tree, err := NewBalanceTree(balances)
+	fmt.Printf("end:%s\n", time.Now())
 	assert.Nil(t, err)
 
 	root := tree.GetRoot()

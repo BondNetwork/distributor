@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity >=0.7.6 <0.9.0;
+pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import {IMerkleDistributor} from "./interfaces/IMerkleDistributor.sol";
 import "./interfaces/AggregatorMerkleInterface.sol";
@@ -89,15 +89,13 @@ contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard {
 
     function claim(uint256 batch, uint256 index, address account, uint256 amount, bytes32[] calldata merkleProof)
     public  nonReentrant virtual override returns (bool) {
-        if(!updateRoot()) return false;
-        if(batch != curBatch) return false;
-        if (isClaimed(curBatch,index)){
-            //console.log("isClaimed\n");
-            return false;
-        }
+        if(msg.sender != account) revert("account is error");
+        if(!updateRoot()) revert("updateRoot is error");
+        if(batch != curBatch) revert("batch is error");
+        if(isClaimed(curBatch,index)) revert("isClaimed");
         // Verify the merkle proof.
         bytes32 node = keccak256(abi.encodePacked(index, account, amount));
-        if (!MerkleProof.verify(merkleProof, merkleRoot, node)) return false;
+        if (!MerkleProof.verify(merkleProof, merkleRoot, node)) revert("proof verify error");
 
         // Mark it claimed and send the token.
         _setClaimed(index);

@@ -1,0 +1,16 @@
+type ProofRequest {
+	Account string `json:"account"`
+}
+
+type ProofResponse {
+	BatchId int32    `json:"batchId"`
+	Index   int32    `json:"index"`
+	Account string   `json:"account"`
+	Proofs  []string `json:"proofs"`
+	Amount  string   `json:"amount"`
+}
+
+service claim-api {
+	@handler ClaimHandler
+	post /claim/getProof (ProofRequest) returns (ProofResponse)
+}
