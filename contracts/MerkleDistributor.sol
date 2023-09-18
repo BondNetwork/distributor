@@ -12,12 +12,13 @@ contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard {
     using SafeERC20 for IERC20;
     AggregatorMerkleInterface internal merkleAggregator;
     address override public   token;
-    uint256 public   projectId;
+    string public   projectId;
     bytes32 override public   merkleRoot;
     uint256 public   curBatch;
     uint80  public   roundId;
     uint256 public   startedAt;
     uint256 public   updatedAt;
+    uint256 public   taskId;
 
     struct IndexValue {uint256 keyIndex; bool value;}
     struct KeyFlag { uint256 key; bool deleted; }
@@ -25,10 +26,11 @@ contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard {
     mapping(uint256 => IndexValue) private claimedBitMap;
     KeyFlag[] private claimedkeys;
     
-    constructor(address aggregatorProxy_, address token_, uint256 projectId_) {
+    constructor(address aggregatorProxy_, address token_, string memory projectId_, uint256 taskId_) {
         merkleAggregator = AggregatorMerkleInterface(aggregatorProxy_);
         token = token_;
         projectId = projectId_;
+        taskId = taskId_;
     }
 
     function updateRoot() private  returns (bool){
