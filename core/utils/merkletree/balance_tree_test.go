@@ -13,10 +13,10 @@ import (
 
 func TestBalanceTree(t *testing.T) {
 	balances := []Balance{
-		{Account: common.HexToAddress("0xF4888aEd11bFA9ADcfa25B42E11Cb6E064A354b8"), Amount: big.NewInt(200000000000000000)},
-		{Account: common.HexToAddress("0x431aa3467889D68f26E975ED2246b1E2cAd2B3B2"), Amount: big.NewInt(100000000000000000)},
-		{Account: common.HexToAddress("0x1205FC050610ea92D4A938121f011ce86271C7ce"), Amount: big.NewInt(150000000000000000)},
-		{Account: common.HexToAddress("0x32DA87cffC407d29B104cb4dD47dD8e9b6308e0F"), Amount: big.NewInt(350000000000000000)},
+		{Account: common.HexToAddress("0x1205FC050610ea92D4A938121f011ce86271C7ce"), Amount: big.NewInt(850000000000000000)},
+		{Account: common.HexToAddress("0xF4888aEd11bFA9ADcfa25B42E11Cb6E064A354b8"), Amount: big.NewInt(300000000000000000)},
+		{Account: common.HexToAddress("0x431aa3467889D68f26E975ED2246b1E2cAd2B3B2"), Amount: big.NewInt(800000000000000000)},
+		{Account: common.HexToAddress("0x32DA87cffC407d29B104cb4dD47dD8e9b6308e0F"), Amount: big.NewInt(750000000000000000)},
 		{Account: common.HexToAddress("0x9D9812c83bAdb616B9cf984941B539112dC13a64"), Amount: big.NewInt(460000000000000000)},
 		{Account: common.HexToAddress("0x83d9fe2Ce722F534DA63F8e64965d7d7C40c6F24"), Amount: big.NewInt(550000000000000000)},
 		{Account: common.HexToAddress("0x85bee39F32CeF5522b996290DD50BAd472188A43"), Amount: big.NewInt(650000000000000000)},

@@ -6,20 +6,33 @@ contract DistributorFactory {
     event DistributorCreated(
         address deployer,
         string  pId,
-        uint256 tId,
-        address token,
+        string  tId,
+        address distributorAddress,
         uint256 timestamp
     );
+
+    struct TaskItem
+    {
+        bool isUsed;
+        address distributorAddress;
+    }
+
+    mapping(string => TaskItem) private taskIds;
 
     function createDistributor(
         address aggregatorProxy,
         address token,
         string memory pId,
-        uint256 tId,
-        address owner
+        string memory tId,
+        uint256 amount,
+        uint256 startTimestamp,
+        uint256 endTimestamp
     ) public returns (address) {
-        MerkleDistributor distributorObj = new MerkleDistributor(aggregatorProxy, token, pId, tId);
-        emit DistributorCreated(owner, pId, tId, address(distributorObj), block.timestamp);
+        require(taskIds[tId].isUsed == false, "taskid was created");
+        MerkleDistributor distributorObj = new MerkleDistributor(aggregatorProxy, token, pId, tId, amount, startTimestamp, endTimestamp);
+        taskIds[tId].isUsed = true;
+        taskIds[tId].distributorAddress = address(distributorObj);
+        emit DistributorCreated(msg.sender, pId, tId, address(distributorObj), block.timestamp);
         return address(distributorObj);
     }
 }

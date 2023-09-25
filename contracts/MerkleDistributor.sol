@@ -3,12 +3,13 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import {IMerkleDistributor} from "./interfaces/IMerkleDistributor.sol";
 import "./interfaces/AggregatorMerkleInterface.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
-contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard {
+contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard, Ownable, Pausable {
     using SafeERC20 for IERC20;
     AggregatorMerkleInterface internal merkleAggregator;
     address override public   token;
@@ -18,19 +19,26 @@ contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard {
     uint80  public   roundId;
     uint256 public   startedAt;
     uint256 public   updatedAt;
-    uint256 public   taskId;
+    string  public   taskId;
+    uint256 public   taskAmount;
+    uint256 public   taskStartTimestamp;
+    uint256 public   taskEndTimestamp;
 
     struct IndexValue {uint256 keyIndex; bool value;}
     struct KeyFlag { uint256 key; bool deleted; }
 
     mapping(uint256 => IndexValue) private claimedBitMap;
     KeyFlag[] private claimedkeys;
-    
-    constructor(address aggregatorProxy_, address token_, string memory projectId_, uint256 taskId_) {
-        merkleAggregator = AggregatorMerkleInterface(aggregatorProxy_);
+    event Deposit(address indexed user, uint256 amount);
+    event Withdraw(address indexed user, uint256 amount);
+    constructor(address aggregator_, address token_, string memory projectId_, string memory taskId_, uint256 amount, uint256 startTimestamp, uint256 endTimestamp) {
+        merkleAggregator = AggregatorMerkleInterface(aggregator_);
         token = token_;
         projectId = projectId_;
         taskId = taskId_;
+        taskAmount = amount;
+        taskStartTimestamp = startTimestamp;
+        taskEndTimestamp = endTimestamp;
     }
 
     function updateRoot() private  returns (bool){
@@ -49,7 +57,7 @@ contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard {
             merkleRootNew,
             startedAtNew,
             updatedAtNew
-        ) = merkleAggregator.latestMerkleRoundData();
+        ) = merkleAggregator.latestMerkleRoundData(taskId);
 
         if(curBatchNew != curBatch)
         {    
@@ -89,8 +97,8 @@ contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard {
         }
     }
 
-    function claim(uint256 batch, uint256 index, address account, uint256 amount, bytes32[] calldata merkleProof)
-    public  nonReentrant virtual override returns (bool) {
+function claim(uint256 batch, uint256 index, address account, uint256 amount, bytes32[] calldata merkleProof)
+    public  whenNotPaused nonReentrant virtual override returns (bool) {
         if(msg.sender != account) revert("account is error");
         if(!updateRoot()) revert("updateRoot is error");
         if(batch != curBatch) revert("batch is error");
@@ -105,5 +113,29 @@ contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard {
         IERC20(token).transfer(account, amount);
         emit Claimed(batch, index, account, amount);
         return true;
+    }
+    
+    function taskBaseInfo()
+    public view returns (address, string memory, string memory, uint256, uint256, uint256) {
+        return (token, projectId, taskId, taskAmount, taskStartTimestamp, taskEndTimestamp);
+    }
+
+    function deposit(uint256 amount) external onlyOwner nonReentrant {
+        require(amount > 0, "Deposit: Amount must be > 0");
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        emit Deposit(msg.sender, amount);
+    }
+
+    function withdraw(uint256 amount) external onlyOwner nonReentrant {
+        IERC20(token).safeTransfer(msg.sender, amount);
+        emit Withdraw(msg.sender, amount);
+    }
+
+    function pauseDistribution() external onlyOwner whenNotPaused {
+        _pause();
+    }
+
+    function unpauseDistribution() external onlyOwner whenPaused {
+        _unpause();
     }
 }
