@@ -6,8 +6,8 @@ import "./interfaces/AggregatorMerkleInterface.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard, Ownable, Pausable {
     using SafeERC20 for IERC20;
@@ -31,7 +31,9 @@ contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard, Ownable, Paus
     KeyFlag[] private claimedkeys;
     event Deposit(address indexed user, uint256 amount);
     event Withdraw(address indexed user, uint256 amount);
-    constructor(address aggregator_, address token_, string memory projectId_, string memory taskId_, uint256 amount, uint256 startTimestamp, uint256 endTimestamp) {
+    constructor(address aggregator_, address token_, string memory projectId_, string memory taskId_, uint256 amount, uint256 startTimestamp, uint256 endTimestamp)
+    Ownable(msg.sender)
+    {
         merkleAggregator = AggregatorMerkleInterface(aggregator_);
         token = token_;
         projectId = projectId_;
