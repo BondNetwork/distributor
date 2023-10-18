@@ -37,9 +37,7 @@ contract MerkleDistributor is
     mapping(uint256 => Types.IndexValue) internal _claimedBitMap;
     Types.KeyFlag[] internal _claimedkeys;
 
-    constructor(
-        Types.CreateDistributorParams memory params
-    )  {
+    constructor(Types.CreateDistributorParams memory params)  {
         _merkleAggregator = AggregatorMerkleInterface(params.aggregatorAddress);
         _token = params.token;
         _projectId = keccak256(bytes(params.projectId));
@@ -62,15 +60,27 @@ contract MerkleDistributor is
         return _merkleRoot;
     }
 
-    function getContractBalance() external view returns (uint256) {
+    function getTokenBalance() external view returns (uint256) {
         return IERC20(_token).balanceOf(address(this));
+    }
+
+    function getEthBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    //Fallback function to receive Ether transfers
+    receive() external payable {       
+    }  
+
+    function withdrawBalance() external onlyOwner() {
+        payable(owner()).transfer(address(this).balance);
     }
 
     function isClaimed(
         uint256 batch,
         uint256 index
     ) external view override returns (bool) {
-        return _isClaimed(batch,index);
+        return _isClaimed(batch, index);
     }
 
     function claim(
@@ -151,6 +161,8 @@ contract MerkleDistributor is
         _unpause();
     }
 
+  
+
     function _updateRoot() private returns (bool) {
         if (_merkleAggregator.isLocked()) {
             return false;
@@ -161,7 +173,9 @@ contract MerkleDistributor is
             bytes32 merkleRootNew,
             uint256 startedAtNew,
             uint256 updatedAtNew
-        ) = _merkleAggregator.latestMerkleRoundData(string(abi.encodePacked(_taskId)));
+        ) = _merkleAggregator.latestMerkleRoundData(
+                string(abi.encodePacked(_taskId))
+            );
 
         if (curBatchNew != _curBatch) {
             uint256 arrayLength = _claimedkeys.length;
@@ -191,10 +205,11 @@ contract MerkleDistributor is
             _claimedkeys.push(Types.KeyFlag({key: index, deleted: false}));
         }
     }
-     function _isClaimed(
+
+    function _isClaimed(
         uint256 batch,
         uint256 index
-    ) private view  returns (bool) {
+    ) private view returns (bool) {
         if (_curBatch != batch) return true;
         return _claimedBitMap[index].value;
     }

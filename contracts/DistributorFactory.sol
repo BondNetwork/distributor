@@ -20,37 +20,80 @@ contract DistributorFactory is BondUpgradeable {
         __BondUpgradeable_init();
     }
 
-    function getVersion() public pure returns (uint32) {
+    function getVersion() external pure returns (uint32) {
         return REVISION;
     }
 
-    function createDistributor(
+    function createDistributorByToken(
         Types.CreateDistributorParams calldata params
     ) external returns (address) {
-        bytes32 taskId = keccak256(bytes(params.taskId));
-        if (_taskItems[taskId] != address(0)) {
-            revert Errors.TaskItemAlreadyExist();
-        }
-
-        
-        address distributorAddress = address(new MerkleDistributor(params));
-        _taskItems[taskId] = distributorAddress;
-        console.log("new distributor: %s ",distributorAddress);
+        (bytes32 taskId, address distributorAddress) = _createDistributor(
+            params
+        );
         if (params.token != address(0)) {
-           
-            console.log("account: %s %s", params.account, IERC20(params.token).balanceOf(params.account));
-            console.log("allowance: %s %s ", IERC20(params.token).allowance(params.account,address(this)),params.amount);
+            console.log(
+                "account: %s %s",
+                msg.sender,
+                IERC20(params.token).balanceOf(msg.sender)
+            );
+            console.log(
+                "allowance: %s %s ",
+                IERC20(params.token).allowance(msg.sender, address(this)),
+                params.amount
+            );
             IERC20(params.token).safeTransferFrom(
-                params.account,
+                msg.sender,
                 distributorAddress,
                 params.amount
             );
         }
+        _taskItems[taskId] = distributorAddress;
         emit Events.DistributorCreated(
             params.taskId,
             params.projectId,
             msg.sender,
             distributorAddress,
+            "TOKEN",
+            params.amount,
+            block.timestamp
+        );
+        return distributorAddress;
+    }
+
+    function _transferETH(address to, uint256 amount) internal {
+        if (amount > 0) {
+            bool success;
+            assembly {
+                success := call(gas(), to, amount, 0, 0, 0, 0)
+            }
+            if (!success) {
+                revert Errors.ETHTransferFailed();
+            }
+        }
+    }
+
+    function createDistributorByEth(
+        Types.CreateDistributorParams calldata params
+    ) external payable returns (address) {
+        console.log("msg.value %s ", msg.value);
+
+        require(msg.value >= params.amount, "Not enough ETH sent");
+        //
+        (bytes32 taskId, address distributorAddress) = _createDistributor(
+            params
+        );
+
+        _transferETH(distributorAddress, params.amount);
+
+        _taskItems[taskId] = distributorAddress;
+
+        emit Events.DistributorCreated(
+            params.taskId,
+            params.projectId,
+            msg.sender,
+            distributorAddress,
+            "ETH",
+            params.amount,
             block.timestamp
         );
         return distributorAddress;
@@ -59,13 +102,12 @@ contract DistributorFactory is BondUpgradeable {
     function updateDistributor(
         Types.CreateDistributorParams calldata params
     ) external {
-        bytes32 taskId = keccak256(bytes(params.taskId));
-        if (_taskItems[taskId] == address(0)) {
-            revert Errors.TaskItemNoExist();
-        }
-        address distributorAddress = address(new MerkleDistributor(params));
+        (bytes32 taskId, address distributorAddress) = _createDistributor(
+            params
+        );
         address oldAddress = _taskItems[taskId];
         _taskItems[taskId] = distributorAddress;
+
         emit Events.DistributorUpdate(
             params.taskId,
             params.projectId,
@@ -81,5 +123,17 @@ contract DistributorFactory is BondUpgradeable {
     ) external view returns (address) {
         bytes32 id = keccak256(bytes(taskId));
         return _taskItems[id];
+    }
+
+    function _createDistributor(
+        Types.CreateDistributorParams calldata params
+    ) private returns (bytes32, address) {
+        bytes32 taskId = keccak256(bytes(params.taskId));
+        if (_taskItems[taskId] != address(0)) {
+            revert Errors.TaskItemAlreadyExist();
+        }
+        address distributorAddress = address(new MerkleDistributor(params));
+        console.log("new distributor: %s ", distributorAddress);
+        return (taskId, distributorAddress);
     }
 }

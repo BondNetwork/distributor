@@ -8,11 +8,4 @@ contract MyToken is ERC20 {
     constructor() ERC20("MyToken", "MTK") {
         _mint(msg.sender, 1000000 * 10 ** uint256(decimals()));
     }
-
-    function transferFromEx(address from, address to, uint256 amount) public  returns (bool) {
-        address spender = _msgSender();
-        console.log("transferFromEx msg.sender: %s", spender);
-        _transfer(from, to, amount);
-        return  transferFrom(from,to, amount);
-    }
 }

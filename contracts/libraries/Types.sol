@@ -7,8 +7,6 @@ library Types {
     struct CreateDistributorParams {
         address aggregatorAddress;
         address token;
-        address account;
-        uint256 ethValue;
         string  projectId;
         string  taskId;
         uint256 amount;

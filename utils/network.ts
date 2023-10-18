@@ -1,6 +1,6 @@
 
 
-import { BSCTEST_RPC_URL, MNEMONIC, MNEMONIC_PATH, MUMBAI_RPC_URL, POLYGON_RPC_URL, SEPOLIA_RPC_URL } from "./config";
+import {  MNEMONIC, MNEMONIC_PATH,  SEPOLIA_RPC_URL } from "./config";
 
 
 export type ChainNetwork = {
@@ -15,35 +15,15 @@ export const Hardhat: ChainNetwork = {
   url: "http://localhost:8545"
 }
 
-export const BscTestnet: ChainNetwork = {
-  name: "bnbt",
-  chainId: 97,
-  url: BSCTEST_RPC_URL
-}
-
-export const Mumbai: ChainNetwork = {
-  name: "mumbai",
-  chainId: 80001,
-  url: MUMBAI_RPC_URL
-}
-
 export const Sepolia: ChainNetwork = {
   name: "sepolia",
   chainId: 11155111,
   url: SEPOLIA_RPC_URL
 }
 
-export const PolygonMainnet: ChainNetwork = {
-  name: "polygon",
-  chainId: 137,
-  url: POLYGON_RPC_URL
-}
 
 export const networks = new Map<string, ChainNetwork>([
   [Hardhat.name, Hardhat],
-  [BscTestnet.name, BscTestnet],
-  [Mumbai.name, Mumbai],
-  [PolygonMainnet.name, PolygonMainnet],
   [Sepolia.name, Sepolia],
 ]);
 

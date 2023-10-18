@@ -9,6 +9,7 @@
     "full-deploy-local": "yarn compile && hardhat --network localhost run scripts/full-deploy.ts",
     "full-deploy-sepolia": "yarn compile && hardhat run --network sepolia scripts/full-deploy.ts",
     "test-local": "hardhat run --network localhost scripts/test.ts",
+    "test-sepolia": "hardhat run --network sepolia scripts/test.ts",
     "compile": "hardhat clean && hardhat compile --force",
     "size": "npm run compile && hardhat size-contracts",
     "test": "hardhat test"

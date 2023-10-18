@@ -8,6 +8,8 @@ library Events {
         string projectId,
         address deployer,
         address distributorAddress,
+        string  tokenType,
+        uint256 amount,
         uint256 timestamp
     );
 

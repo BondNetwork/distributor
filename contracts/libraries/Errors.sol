@@ -6,5 +6,6 @@ library Errors {
 
     error TaskItemAlreadyExist();
     error TaskItemNoExist();
+    error ETHTransferFailed();
  
 }
