@@ -1,4 +1,5 @@
-//import { delay } from "../helpers/utils";
+
+import { delay } from "../helpers/utils";
 import hre, { ethers, upgrades } from "hardhat";
 import { FactoryOptions } from "hardhat/types";
 
@@ -7,10 +8,6 @@ export type ContractData = {
     address: string;
     timestamp: number;
 };
-
-export async function delay(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 export function checkDeployContract(contract: ContractData): boolean {
     if (
@@ -39,13 +36,13 @@ export function checkContractProxy(contract: ContractData): boolean {
 
 
 
-export async function verifyContract(
+async function verifyContract(
     name: string,
     contractAddress: string,
     args?: any
 ) {
     let count = 0;
-    const maxTries = 8;
+    const maxTries = 3;
     while (true) {
         await delay(10000);
         try {
@@ -111,9 +108,10 @@ export async function deployProxy(
         contractFactory,
         params.args,
         {
-            initializer: params.initializer ? params.initializer : "initialize"
+            initializer: params.initializer ? params.initializer : "initialize",
+            kind: "uups",
+            unsafeAllow: ["external-library-linking"],
         });
-    //const proxyC = await proxy.deployed();
     await proxy.waitForDeployment();
     const proxyAddress = await proxy.getAddress();
     await delay(10000);

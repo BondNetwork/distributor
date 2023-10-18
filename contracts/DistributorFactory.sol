@@ -1,79 +1,85 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import "./MerkleDistributor.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract DistributorFactory is Initializable{
-    event DistributorCreated(
-        address deployer,
-        string  pId,
-        string  tId,
-        address distributorAddress,
-        uint256 timestamp
-    );
+import {Types} from "contracts/libraries/Types.sol";
+import {Events} from "contracts/libraries/Events.sol";
+import {Errors} from "contracts/libraries/Errors.sol";
+import {BondUpgradeable} from "contracts/upgradeability/BondUpgradeable.sol";
+import {MerkleDistributor} from "contracts/MerkleDistributor.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "hardhat/console.sol";
 
-    event DistributorUpdate(
-        address deployer,
-        string  pId,
-        string  tId,
-        address oldDistributorAddress,
-        address newDistributorAddress,
-        uint256 timestamp
-    );
+contract DistributorFactory is BondUpgradeable {
+    using SafeERC20 for IERC20;
 
-    struct TaskItem
-    {
-        bool isUsed;
-        address distributorAddress;
+    uint32 internal constant REVISION = 5;
+
+    mapping(bytes32 taskId => address distributor) internal _taskItems;
+
+    function initialize() external initializer {
+        __BondUpgradeable_init();
     }
 
-    mapping(string => TaskItem) private taskIds;
-
-    function initialize (
-    ) external initializer{
+    function getVersion() public pure returns (uint32) {
+        return REVISION;
     }
 
     function createDistributor(
-        address aggregatorAddress,
-        address token,
-        string memory pId,
-        string memory tId,
-        uint256 amount,
-        uint256 startTimestamp,
-        uint256 endTimestamp
-    ) external{
-        require(taskIds[tId].isUsed == false, "taskid was created");
-        MerkleDistributor distributorObj = new MerkleDistributor(aggregatorAddress, token, pId, tId, amount, startTimestamp, endTimestamp);
-        taskIds[tId].isUsed = true;
-        taskIds[tId].distributorAddress = address(distributorObj);
-        emit DistributorCreated(msg.sender, pId, tId, address(distributorObj), block.timestamp);
+        Types.CreateDistributorParams calldata params
+    ) external returns (address) {
+        bytes32 taskId = keccak256(bytes(params.taskId));
+        if (_taskItems[taskId] != address(0)) {
+            revert Errors.TaskItemAlreadyExist();
+        }
+
+        
+        address distributorAddress = address(new MerkleDistributor(params));
+        _taskItems[taskId] = distributorAddress;
+        console.log("new distributor: %s ",distributorAddress);
+        if (params.token != address(0)) {
+           
+            console.log("account: %s %s", params.account, IERC20(params.token).balanceOf(params.account));
+            console.log("allowance: %s %s ", IERC20(params.token).allowance(params.account,address(this)),params.amount);
+            IERC20(params.token).safeTransferFrom(
+                params.account,
+                distributorAddress,
+                params.amount
+            );
+        }
+        emit Events.DistributorCreated(
+            params.taskId,
+            params.projectId,
+            msg.sender,
+            distributorAddress,
+            block.timestamp
+        );
+        return distributorAddress;
     }
 
-    function updateDistributor(address aggregatorAddress,
-        address token,
-        string memory pId,
-        string memory tId,
-        uint256 amount,
-        uint256 startTimestamp,
-        uint256 endTimestamp)
-    external{
-        require(taskIds[tId].isUsed == true, "taskid is not exist");
-        MerkleDistributor distributorObj = new MerkleDistributor(aggregatorAddress, token, pId, tId, amount, startTimestamp, endTimestamp);
-        taskIds[tId].distributorAddress = address(distributorObj);
-        emit DistributorUpdate(msg.sender, pId, tId, taskIds[tId].distributorAddress, address(distributorObj), block.timestamp);
+    function updateDistributor(
+        Types.CreateDistributorParams calldata params
+    ) external {
+        bytes32 taskId = keccak256(bytes(params.taskId));
+        if (_taskItems[taskId] == address(0)) {
+            revert Errors.TaskItemNoExist();
+        }
+        address distributorAddress = address(new MerkleDistributor(params));
+        address oldAddress = _taskItems[taskId];
+        _taskItems[taskId] = distributorAddress;
+        emit Events.DistributorUpdate(
+            params.taskId,
+            params.projectId,
+            msg.sender,
+            oldAddress,
+            distributorAddress,
+            block.timestamp
+        );
     }
 
-    function distributorFactoryVersion()
-    external
-    pure
-    returns (string memory){
-        return "1.0.0";
-    }
-
-    function getDistributorAddress(string memory tId)
-    external
-    view
-    returns (address){
-        return taskIds[tId].distributorAddress;
+    function getDistributorAddress(
+        string memory taskId
+    ) external view returns (address) {
+        bytes32 id = keccak256(bytes(taskId));
+        return _taskItems[id];
     }
 }

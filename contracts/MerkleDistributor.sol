@@ -1,136 +1,146 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 import "hardhat/console.sol";
-import {IMerkleDistributor} from "./interfaces/IMerkleDistributor.sol";
-import "./interfaces/AggregatorMerkleInterface.sol";
+import {IMerkleDistributor} from "contracts/interfaces/IMerkleDistributor.sol";
+import {AggregatorMerkleInterface} from "contracts/interfaces/AggregatorMerkleInterface.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
-contract MerkleDistributor is IMerkleDistributor, ReentrancyGuard, Ownable, Pausable {
+import {Types} from "contracts/libraries/Types.sol";
+import {Events} from "contracts/libraries/Events.sol";
+
+contract MerkleDistributor is
+    IMerkleDistributor,
+    ReentrancyGuard,
+    Ownable,
+    Pausable
+{
     using SafeERC20 for IERC20;
-    AggregatorMerkleInterface internal merkleAggregator;
-    address override public   token;
-    string public   projectId;
-    bytes32 override public   merkleRoot;
-    uint256 public   curBatch;
-    uint80  public   roundId;
-    uint256 public   startedAt;
-    uint256 public   updatedAt;
-    string  public   taskId;
-    uint256 public   taskAmount;
-    uint256 public   taskStartTimestamp;
-    uint256 public   taskEndTimestamp;
+    AggregatorMerkleInterface internal _merkleAggregator;
+    address internal _token;
+    bytes32 internal _projectId;
+    bytes32 internal _taskId;
+    uint256 internal _taskAmount;
+    uint256 internal _taskStartTimestamp;
+    uint256 internal _taskEndTimestamp;
+    uint256 internal _rewardPerBatch;
 
-    struct IndexValue {uint256 keyIndex; bool value;}
-    struct KeyFlag { uint256 key; bool deleted; }
+    bytes32 internal _merkleRoot;
+    uint256 internal _curBatch;
+    uint256 internal _roundId;
+    uint256 internal _startedAt;
+    uint256 internal _updatedAt;
 
-    mapping(uint256 => IndexValue) private claimedBitMap;
-    KeyFlag[] private claimedkeys;
-    event Deposit(address indexed user, uint256 amount);
-    event Withdraw(address indexed user, uint256 amount);
-    constructor(address aggregator_, address token_, string memory projectId_, string memory taskId_, uint256 amount, uint256 startTimestamp, uint256 endTimestamp)
-    Ownable(msg.sender)
-    {
-        merkleAggregator = AggregatorMerkleInterface(aggregator_);
-        token = token_;
-        projectId = projectId_;
-        taskId = taskId_;
-        taskAmount = amount;
-        taskStartTimestamp = startTimestamp;
-        taskEndTimestamp = endTimestamp;
+    mapping(uint256 => Types.IndexValue) internal _claimedBitMap;
+    Types.KeyFlag[] internal _claimedkeys;
+
+    constructor(
+        Types.CreateDistributorParams memory params
+    )  {
+        _merkleAggregator = AggregatorMerkleInterface(params.aggregatorAddress);
+        _token = params.token;
+        _projectId = keccak256(bytes(params.projectId));
+        _taskId = keccak256(bytes(params.taskId));
+        _taskAmount = params.amount;
+        _taskStartTimestamp = params.startTimestamp;
+        _taskEndTimestamp = params.endTimestamp;
+        _rewardPerBatch = params.rewardPerBatch;
     }
 
-    function updateRoot() private  returns (bool){
-        if(merkleAggregator.isLocked())
-        {
-            return false;
-        }
-        uint256  curBatchNew;
-        bytes32  merkleRootNew;
-        uint80   roundIdNew;
-        uint256  startedAtNew;
-        uint256  updatedAtNew;
-        (
-            roundIdNew,
-            curBatchNew,
-            merkleRootNew,
-            startedAtNew,
-            updatedAtNew
-        ) = merkleAggregator.latestMerkleRoundData(taskId);
-
-        if(curBatchNew != curBatch)
-        {    
-            uint256 arrayLength = claimedkeys.length;
-            for (uint i = 0; i < arrayLength; i++) {
-                delete claimedBitMap[claimedkeys[i].key];      
-            }
-            while(claimedkeys.length > 0){
-                claimedkeys.pop();
-            }
-            curBatch = curBatchNew;
-            merkleRoot = merkleRootNew;
-            roundId = roundIdNew;
-            startedAt = startedAtNew;
-            updatedAt = updatedAtNew;
-            //console.log("updateRoot curBatch:%d roundId:%d\n", curBatch,roundId);
-            //console.logBytes32(merkleRoot);
-        }   
-        return true;
+    function getRewardPerBatch() external view returns (uint256) {
+        return _rewardPerBatch;
     }
 
-    function isClaimed(uint256 batch, uint256 index)
-    public view override returns (bool) {
-        if(curBatch != batch)
-            return true;
-        return claimedBitMap[index].value;
+    function token() external view override returns (address) {
+        return _token;
     }
 
-    function _setClaimed(uint256 index) private {
-        IndexValue memory claimedIndexValue = claimedBitMap[index];
-        if (claimedIndexValue.value == false)
-        {
-            uint256 keyIndex = claimedkeys.length;
-            claimedBitMap[index].value = true;
-            claimedBitMap[index].keyIndex = keyIndex;
-            claimedkeys.push(KeyFlag({key:index, deleted:false}));
-        }
+    function merkleRoot() external view override returns (bytes32) {
+        return _merkleRoot;
     }
 
-function claim(uint256 batch, uint256 index, address account, uint256 amount, bytes32[] calldata merkleProof)
-    public  whenNotPaused nonReentrant virtual override returns (bool) {
-        if(msg.sender != account) revert("account is error");
-        if(!updateRoot()) revert("updateRoot is error");
-        if(batch != curBatch) revert("batch is error");
-        if(isClaimed(curBatch,index)) revert("isClaimed");
+    function getContractBalance() external view returns (uint256) {
+        return IERC20(_token).balanceOf(address(this));
+    }
+
+    function isClaimed(
+        uint256 batch,
+        uint256 index
+    ) external view override returns (bool) {
+        return _isClaimed(batch,index);
+    }
+
+    function claim(
+        uint256 batch,
+        uint256 index,
+        address account,
+        uint256 amount,
+        bytes32[] calldata merkleProof
+    ) external virtual override whenNotPaused nonReentrant returns (bool) {
+        if (msg.sender != account) revert("account is error");
+        if (!_updateRoot()) revert("updateRoot is error");
+        if (batch != _curBatch) revert("batch is error");
+        if (_isClaimed(_curBatch, index)) revert("isClaimed");
         // Verify the merkle proof.
         bytes32 node = keccak256(abi.encodePacked(index, account, amount));
-        if (!MerkleProof.verify(merkleProof, merkleRoot, node)) revert("proof verify error");
+        if (!MerkleProof.verify(merkleProof, _merkleRoot, node))
+            revert("proof verify error");
 
         // Mark it claimed and send the token.
         _setClaimed(index);
-        console.log("claim 02 toarr:%s, amount:%d, thisaddr:%s\n", account, amount, address(this));
-        IERC20(token).transfer(account, amount);
+        console.log(
+            "claim 02 toarr:%s, amount:%d, thisaddr:%s\n",
+            account,
+            amount,
+            address(this)
+        );
+        IERC20(_token).transfer(account, amount);
         emit Claimed(batch, index, account, amount);
         return true;
     }
-    
+
     function taskBaseInfo()
-    public view returns (address, string memory, string memory, uint256, uint256, uint256) {
-        return (token, projectId, taskId, taskAmount, taskStartTimestamp, taskEndTimestamp);
+        external
+        view
+        returns (
+            address,
+            string memory,
+            string memory,
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        return (
+            _token,
+            string(abi.encodePacked(_projectId)),
+            string(abi.encodePacked(_taskId)),
+            _taskAmount,
+            _taskStartTimestamp,
+            _taskEndTimestamp
+        );
     }
 
     function deposit(uint256 amount) external onlyOwner nonReentrant {
         require(amount > 0, "Deposit: Amount must be > 0");
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        emit Deposit(msg.sender, amount);
+        IERC20(_token).safeTransferFrom(msg.sender, address(this), amount);
+        emit Events.DistributorDeposit(
+            string(abi.encodePacked(_taskId)),
+            msg.sender,
+            amount
+        );
     }
 
     function withdraw(uint256 amount) external onlyOwner nonReentrant {
-        IERC20(token).safeTransfer(msg.sender, amount);
-        emit Withdraw(msg.sender, amount);
+        IERC20(_token).safeTransfer(msg.sender, amount);
+        emit Events.DistributorWithdraw(
+            string(abi.encodePacked(_taskId)),
+            msg.sender,
+            amount
+        );
     }
 
     function pauseDistribution() external onlyOwner whenNotPaused {
@@ -139,5 +149,53 @@ function claim(uint256 batch, uint256 index, address account, uint256 amount, by
 
     function unpauseDistribution() external onlyOwner whenPaused {
         _unpause();
+    }
+
+    function _updateRoot() private returns (bool) {
+        if (_merkleAggregator.isLocked()) {
+            return false;
+        }
+        (
+            uint80 roundIdNew,
+            uint256 curBatchNew,
+            bytes32 merkleRootNew,
+            uint256 startedAtNew,
+            uint256 updatedAtNew
+        ) = _merkleAggregator.latestMerkleRoundData(string(abi.encodePacked(_taskId)));
+
+        if (curBatchNew != _curBatch) {
+            uint256 arrayLength = _claimedkeys.length;
+            for (uint i = 0; i < arrayLength; i++) {
+                delete _claimedBitMap[_claimedkeys[i].key];
+            }
+            while (_claimedkeys.length > 0) {
+                _claimedkeys.pop();
+            }
+            _curBatch = curBatchNew;
+            _merkleRoot = merkleRootNew;
+            _roundId = roundIdNew;
+            _startedAt = startedAtNew;
+            _updatedAt = updatedAtNew;
+            //console.log("updateRoot curBatch:%d roundId:%d\n", _curBatch,roundId);
+            //console.logBytes32(_merkleRoot);
+        }
+        return true;
+    }
+
+    function _setClaimed(uint256 index) private {
+        Types.IndexValue memory claimedIndexValue = _claimedBitMap[index];
+        if (claimedIndexValue.value == false) {
+            uint256 keyIndex = _claimedkeys.length;
+            _claimedBitMap[index].value = true;
+            _claimedBitMap[index].keyIndex = keyIndex;
+            _claimedkeys.push(Types.KeyFlag({key: index, deleted: false}));
+        }
+    }
+     function _isClaimed(
+        uint256 batch,
+        uint256 index
+    ) private view  returns (bool) {
+        if (_curBatch != batch) return true;
+        return _claimedBitMap[index].value;
     }
 }
