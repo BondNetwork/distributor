@@ -60,18 +60,7 @@ contract DistributorFactory is BondUpgradeable {
         return distributorAddress;
     }
 
-    function _transferETH(address to, uint256 amount) internal {
-        if (amount > 0) {
-            bool success;
-            assembly {
-                success := call(gas(), to, amount, 0, 0, 0, 0)
-            }
-            if (!success) {
-                revert Errors.ETHTransferFailed();
-            }
-        }
-    }
-
+  
     function createDistributorByEth(
         Types.CreateDistributorParams calldata params
     ) external payable returns (address) {
@@ -136,4 +125,17 @@ contract DistributorFactory is BondUpgradeable {
         console.log("new distributor: %s ", distributorAddress);
         return (taskId, distributorAddress);
     }
+
+    function _transferETH(address to, uint256 amount) internal {
+        if (amount > 0) {
+            bool success;
+            assembly {
+                success := call(gas(), to, amount, 0, 0, 0, 0)
+            }
+            if (!success) {
+                revert Errors.ETHTransferFailed();
+            }
+        }
+    }
+
 }
