@@ -8,9 +8,9 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
-
 import {Types} from "contracts/libraries/Types.sol";
 import {Events} from "contracts/libraries/Events.sol";
+import {Errors} from "contracts/libraries/Errors.sol";
 
 contract MerkleDistributor is
     IMerkleDistributor,
@@ -20,6 +20,7 @@ contract MerkleDistributor is
 {
     using SafeERC20 for IERC20;
     AggregatorMerkleInterface internal _merkleAggregator;
+    address internal _factory;
     address internal _token;
     bytes32 internal _projectId;
     bytes32 internal _taskId;
@@ -37,7 +38,8 @@ contract MerkleDistributor is
     mapping(uint256 => Types.IndexValue) internal _claimedBitMap;
     Types.KeyFlag[] internal _claimedkeys;
 
-    constructor(Types.CreateDistributorParams memory params)  {
+    constructor(address factory,Types.CreateDistributorParams memory params)  {
+        _factory = factory;
         _merkleAggregator = AggregatorMerkleInterface(params.aggregatorAddress);
         _token = params.token;
         _projectId = keccak256(bytes(params.projectId));
@@ -46,6 +48,13 @@ contract MerkleDistributor is
         _taskStartTimestamp = params.startTimestamp;
         _taskEndTimestamp = params.endTimestamp;
         _rewardPerBatch = params.rewardPerBatch;
+    }
+
+    modifier onlyOwnerOrFactory() {
+         if (msg.sender != _factory && msg.sender != owner() ) {
+            revert Errors.NeitherFactoryNorOwner();
+        }
+        _;
     }
 
     function getRewardPerBatch() external view returns (uint256) {
@@ -134,34 +143,34 @@ contract MerkleDistributor is
         );
     }
 
-    function deposit(uint256 amount) external onlyOwner nonReentrant {
+    function deposit(uint256 amount) external onlyOwnerOrFactory nonReentrant {
         require(amount > 0, "Deposit: Amount must be > 0");
         IERC20(_token).safeTransferFrom(msg.sender, address(this), amount);
         emit Events.DistributorDeposit(
+            string(abi.encodePacked(_projectId)),
             string(abi.encodePacked(_taskId)),
             msg.sender,
             amount
         );
     }
 
-    function withdraw(uint256 amount) external onlyOwner nonReentrant {
+    function withdraw(uint256 amount) external onlyOwnerOrFactory nonReentrant {
         IERC20(_token).safeTransfer(msg.sender, amount);
         emit Events.DistributorWithdraw(
+            string(abi.encodePacked(_projectId)),
             string(abi.encodePacked(_taskId)),
             msg.sender,
             amount
         );
     }
 
-    function pauseDistribution() external onlyOwner whenNotPaused {
+    function pauseDistribution() external onlyOwnerOrFactory whenNotPaused {
         _pause();
     }
 
-    function unpauseDistribution() external onlyOwner whenPaused {
+    function unpauseDistribution() external onlyOwnerOrFactory whenPaused {
         _unpause();
     }
-
-  
 
     function _updateRoot() private returns (bool) {
         if (_merkleAggregator.isLocked()) {

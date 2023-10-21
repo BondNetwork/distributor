@@ -7,5 +7,7 @@ library Errors {
     error TaskItemAlreadyExist();
     error TaskItemNoExist();
     error ETHTransferFailed();
+    error InvalidWETHAddress();
+    error NeitherFactoryNorOwner();
  
 }

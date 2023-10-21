@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.5.0;
+pragma solidity ^0.8.0;
 
 // Allows anyone to claim a token if they exist in a merkle root.
 interface IMerkleDistributor {
@@ -32,4 +32,6 @@ interface IMerkleDistributor {
         address account,
         uint256 amount
     );
+
+    function withdraw(uint256 amount) external;
 }

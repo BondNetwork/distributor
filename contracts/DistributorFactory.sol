@@ -6,18 +6,22 @@ import {Events} from "contracts/libraries/Events.sol";
 import {Errors} from "contracts/libraries/Errors.sol";
 import {BondUpgradeable} from "contracts/upgradeability/BondUpgradeable.sol";
 import {MerkleDistributor} from "contracts/MerkleDistributor.sol";
+import {IMerkleDistributor} from "contracts/interfaces/IMerkleDistributor.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IWETH} from "contracts/interfaces/IWETH.sol";
 import "hardhat/console.sol";
 
 contract DistributorFactory is BondUpgradeable {
     using SafeERC20 for IERC20;
 
     uint32 internal constant REVISION = 5;
+    address internal  _wethMainnet;
 
     mapping(bytes32 taskId => address distributor) internal _taskItems;
 
-    function initialize() external initializer {
+    function initialize(address wethMainnet) external initializer {
         __BondUpgradeable_init();
+        _wethMainnet = wethMainnet;
     }
 
     function getVersion() external pure returns (uint32) {
@@ -49,18 +53,17 @@ contract DistributorFactory is BondUpgradeable {
         }
         _taskItems[taskId] = distributorAddress;
         emit Events.DistributorCreated(
-            params.taskId,
             params.projectId,
+            params.taskId,
             msg.sender,
             distributorAddress,
-            "TOKEN",
+            params.token,
             params.amount,
             block.timestamp
         );
         return distributorAddress;
     }
 
-  
     function createDistributorByEth(
         Types.CreateDistributorParams calldata params
     ) external payable returns (address) {
@@ -72,16 +75,21 @@ contract DistributorFactory is BondUpgradeable {
             params
         );
 
-        _transferETH(distributorAddress, params.amount);
+        //_transferETH(distributorAddress, params.amount);
+        IWETH(params.token).transferFrom(
+            msg.sender,
+            distributorAddress,
+            params.amount
+        );
 
         _taskItems[taskId] = distributorAddress;
 
         emit Events.DistributorCreated(
-            params.taskId,
             params.projectId,
+            params.taskId,
             msg.sender,
             distributorAddress,
-            "ETH",
+            params.token,
             params.amount,
             block.timestamp
         );
@@ -98,8 +106,8 @@ contract DistributorFactory is BondUpgradeable {
         _taskItems[taskId] = distributorAddress;
 
         emit Events.DistributorUpdate(
-            params.taskId,
             params.projectId,
+            params.taskId,
             msg.sender,
             oldAddress,
             distributorAddress,
@@ -114,6 +122,20 @@ contract DistributorFactory is BondUpgradeable {
         return _taskItems[id];
     }
 
+    function withdrawETH(
+        address distributorAddress,
+        uint256 amount,
+        address to
+    ) external  {
+        address tokenAddress = IMerkleDistributor(distributorAddress).token();
+        if(!_isWETH(tokenAddress)) {
+            revert Errors.InvalidWETHAddress();
+        }
+        IMerkleDistributor(distributorAddress).withdraw(amount);
+        IWETH(tokenAddress).withdraw(amount);
+        _safeTransferETH(to, amount);
+    }
+
     function _createDistributor(
         Types.CreateDistributorParams calldata params
     ) private returns (bytes32, address) {
@@ -121,12 +143,12 @@ contract DistributorFactory is BondUpgradeable {
         if (_taskItems[taskId] != address(0)) {
             revert Errors.TaskItemAlreadyExist();
         }
-        address distributorAddress = address(new MerkleDistributor(params));
+        address distributorAddress = address(new MerkleDistributor(address(this),params));
         console.log("new distributor: %s ", distributorAddress);
         return (taskId, distributorAddress);
     }
 
-    function _transferETH(address to, uint256 amount) internal {
+    function _safeTransferETH(address to, uint256 amount) internal {
         if (amount > 0) {
             bool success;
             assembly {
@@ -138,4 +160,7 @@ contract DistributorFactory is BondUpgradeable {
         }
     }
 
+    function _isWETH(address tokenAddress) private view returns (bool) {
+        return tokenAddress == _wethMainnet;
+    }
 }
