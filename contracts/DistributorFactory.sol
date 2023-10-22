@@ -77,13 +77,13 @@ contract DistributorFactory is BondUpgradeable {
         
         console.log("msg.value %s,%s ", msg.value, params.amount);
 
-        require(msg.value >= params.amount, "Not enough ETH sent");
+        require(msg.value >= 0, "Not enough ETH sent");
         Types.CreateDistributorParams memory tmpParams;
         tmpParams.aggregatorAddress = params.aggregatorAddress;
         tmpParams.token = address(_IWETH);
         tmpParams.projectId = params.projectId;
         tmpParams.taskId = params.taskId;
-        tmpParams.amount = params.amount;
+        tmpParams.amount = msg.value;
         tmpParams.startTimestamp = params.startTimestamp;
         tmpParams.endTimestamp = params.endTimestamp;
         tmpParams.rewardPerBatch = params.rewardPerBatch;        
@@ -92,23 +92,21 @@ contract DistributorFactory is BondUpgradeable {
             tmpParams
         );
 
-        _IWETH.deposit{value: msg.value}();
+        _IWETH.deposit{value: tmpParams.amount}();
 
-        console.log("IWETH deposit %s ", msg.value);
+        _IWETH.transfer(distributorAddress, tmpParams.amount);
 
-        _IWETH.transfer(distributorAddress, params.amount);
-
-        console.log("IWETH transfer %s ", params.amount);
+        console.log("IWETH transfer %s ", tmpParams.amount);
 
         _taskItems[taskId] = distributorAddress;
 
         emit Events.DistributorCreated(
-            params.projectId,
-            params.taskId,
+            tmpParams.projectId,
+            tmpParams.taskId,
             msg.sender,
             distributorAddress,
-            params.token,
-            params.amount,
+            tmpParams.token,
+            tmpParams.amount,
             block.timestamp
         );
         return distributorAddress;
@@ -161,11 +159,7 @@ contract DistributorFactory is BondUpgradeable {
 
         IMerkleDistributor(distributorAddress).withdraw(amountToWithdraw);
 
-        console.log("Balance %s %s ", getTokenBalance(), amountToWithdraw);
-
         _IWETH.withdraw(amountToWithdraw);
-
-        console.log("safeTransferETH %s %s ", to, amountToWithdraw);
 
         _safeTransferETH(to, amountToWithdraw);
     }
