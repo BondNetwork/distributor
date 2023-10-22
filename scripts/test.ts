@@ -15,7 +15,7 @@ async function createDistributorByToken(ethsData: EthersData) {
 
     let tokenAddress = ZERO_ADDRESS;
     if (ethsData.network == 'localhost') {
-        tokenAddress = contractAddress.myToken.address;
+        tokenAddress = contractAddress.weth.address;
        
         const myToken = await ethers.getContractAt("MyToken",
             tokenAddress,
@@ -72,7 +72,7 @@ async function createDistributorByEth(ethsData: EthersData) {
 
     let tokenAddress = ZERO_ADDRESS;
     if (ethsData.network == 'localhost') {
-        tokenAddress = contractAddress.myToken.address;
+        tokenAddress = contractAddress.weth.address;
     } else {
         tokenAddress = '0x6c51561c4F5e4ba30209732FF7499a1e4AdE052e';
     }
@@ -91,12 +91,15 @@ async function createDistributorByEth(ethsData: EthersData) {
     }
     
     const value = parseUnits('1000', 'wei') //parseEther('0.001'); // 0.1 ETH
+    const gasPrice = parseUnits('5', 'gwei')
+    console.log("gasPrice ", gasPrice);
     const transaction = await distributorFactory.createDistributorByEth(params,
         {
             value: value, 
-            gasPrice: parseUnits('50', 'kwei')
+            gasPrice: gasPrice
         });
     await transaction.wait();
+    console.log(await ethers.provider.getBalance(contractAddress.distributorFactory.proxy));
 
     const distributorAddress = await distributorFactory.getDistributorAddress(taskId);
     console.log("distributorAddress", distributorAddress);
@@ -107,7 +110,21 @@ async function createDistributorByEth(ethsData: EthersData) {
 
         console.log("rewardPerBatch ", await distributor.getRewardPerBatch());
         console.log("eth balance ", await distributor.getEthBalance());
+        console.log("token balance ", await distributor.getTokenBalance());
+
+        //
     }
+
+    const withdrawAddress = ethsData.accounts[0].address;
+    console.log("withdrawAddress ", withdrawAddress);
+
+    const txs = await distributorFactory.withdrawETH(distributorAddress, 100, withdrawAddress);
+    console.log("txs ", txs.hash);
+    await txs.wait();
+    
+    console.log(await ethers.provider.getBalance(withdrawAddress));
+
+
 }
 async function main() {
 

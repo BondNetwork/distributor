@@ -74,14 +74,15 @@ contract DistributorFactory is BondUpgradeable {
         (bytes32 taskId, address distributorAddress) = _createDistributor(
             params
         );
-
+       
         _IWETH.deposit{value: msg.value}();
 
-        console.log("_IWETH deposit %s ", msg.value);
+        console.log("IWETH deposit %s ", msg.value);
 
-        _IWETH.transferFrom(msg.sender, distributorAddress, params.amount);
+         _IWETH.transfer(distributorAddress, params.amount);
+       //_IWETH.transferFrom(msg.sender, distributorAddress, params.amount);
         
-        console.log("_IWETH transferFrom %s ", params.amount);
+        console.log("IWETH transfer %s ", params.amount);
 
         _taskItems[taskId] = distributorAddress;
 
@@ -128,16 +129,26 @@ contract DistributorFactory is BondUpgradeable {
         uint256 amount,
         address to
     ) external {
+        console.log("distributorAddress %s ", distributorAddress);
+
         uint256 userBalance = IMerkleDistributor(distributorAddress).getTokenBalance();
+
+        console.log("userBalance %s ", userBalance);
+
         uint256 amountToWithdraw = amount;
-        // if amount is equal to uint(-1), the user wants to redeem everything
-        if (amount == type(uint256).max) {
+        if (amount > userBalance ) {
             amountToWithdraw = userBalance;
         }
-        IMerkleDistributor(distributorAddress).withdraw(amountToWithdraw);
-        withdrawWETH(amountToWithdraw);
 
-        console.log("Balance %s %s",getContractBalance(),amountToWithdraw);
+        console.log("amountToWithdraw %s ", amountToWithdraw);
+
+        IMerkleDistributor(distributorAddress).withdraw(amountToWithdraw);
+ 
+        console.log("Balance %s %s ",getTokenBalance(),amountToWithdraw);
+        
+        _IWETH.withdraw(amountToWithdraw);
+
+        console.log("safeTransferETH %s %s ",to,amountToWithdraw); 
         _safeTransferETH(to, amountToWithdraw);
     }
 
@@ -167,12 +178,7 @@ contract DistributorFactory is BondUpgradeable {
         }
     }
 
-    function withdrawWETH(uint256 amount) internal {
-        require(amount <= address(this).balance, "Not enough balance");
-        _IWETH.withdraw(amount);
-    }
-
-    function getContractBalance() internal view returns (uint256) {
-        return address(this).balance;
+    function getTokenBalance() internal view returns (uint256) {
+        return _IWETH.balanceOf(address(this));
     }
 }
