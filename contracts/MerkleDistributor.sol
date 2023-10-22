@@ -152,11 +152,11 @@ contract MerkleDistributor is
         );
     }
 
-    function pauseDistribution() external onlyOwnerOrFactory whenNotPaused {
+    function pauseDistribution() external onlyOwner whenNotPaused {
         _pause();
     }
 
-    function unpauseDistribution() external onlyOwnerOrFactory whenPaused {
+    function unpauseDistribution() external onlyOwner whenPaused {
         _unpause();
     }
 
