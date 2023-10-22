@@ -73,18 +73,6 @@ contract MerkleDistributor is
         return IERC20(_token).balanceOf(address(this));
     }
 
-    function getEthBalance() external view returns (uint256) {
-        return address(this).balance;
-    }
-
-    //Fallback function to receive Ether transfers
-    receive() external payable {       
-    }  
-
-    function withdrawBalance() external onlyOwner() {
-        payable(owner()).transfer(address(this).balance);
-    }
-
     function isClaimed(
         uint256 batch,
         uint256 index

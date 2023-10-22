@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.10;
-
+import "hardhat/console.sol";
 contract WETH {
   string public name = 'Wrapped Ether';
   string public symbol = 'WETH';
@@ -52,7 +52,6 @@ contract WETH {
     uint256 wad
   ) public returns (bool) {
     require(balanceOf[src] >= wad);
-
     if (src != msg.sender && allowance[src][msg.sender] != type(uint256).max) {
       require(allowance[src][msg.sender] >= wad);
       allowance[src][msg.sender] -= wad;

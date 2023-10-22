@@ -9,13 +9,13 @@ export const deployDistributorFactory = async (ethsData: EthersData, verify: boo
     let contractAddress = ethsData.contractAddress;
     let wethAddress = ZERO_ADDRESS;
     if (ethsData.network == 'sepolia') {
-        wethAddress = "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9";
+        wethAddress = "0xd0df82de051244f04bff3a8bb1f62e1cd39eed92";
     } else if (contractAddress.weth){
         wethAddress = contractAddress.weth.address;
 
     }
     console.log("WETH ", wethAddress);
-    
+
     if (checkDeployContract(contractAddress.distributorFactory)) {
         console.log(`\n\t--- Deploying ${name} ---`);        
         if (checkContractProxy(contractAddress.distributorFactory)) {

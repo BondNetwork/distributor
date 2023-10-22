@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { EthersData, loadEthersData } from "./helpers/ethers-data";
-import { ZERO_ADDRESS, delay } from "./helpers/utils";
+import { MAX_UINT_AMOUNT, ZERO_ADDRESS, delay } from "./helpers/utils";
 import { Types } from "../typechain-types/contracts/DistributorFactory";
 import { Contract, JsonRpcProvider, parseEther, parseUnits } from "ethers";
 
@@ -70,18 +70,11 @@ async function createDistributorByEth(ethsData: EthersData) {
     console.log("distributorFactory address", await distributorFactory.getAddress());
     console.log("distributorFactory version", (await distributorFactory.getVersion()).toString());
 
-    let tokenAddress = ZERO_ADDRESS;
-    if (ethsData.network == 'localhost') {
-        tokenAddress = contractAddress.weth.address;
-    } else {
-        tokenAddress = '0x6c51561c4F5e4ba30209732FF7499a1e4AdE052e';
-    }
-
     const taskId = (new Date()).getTime().toString();
     console.log("taskId ", taskId);
     let params: Types.CreateDistributorParamsStruct = {
         aggregatorAddress: ZERO_ADDRESS,
-        token: tokenAddress,
+        token: ZERO_ADDRESS,
         projectId: "xxxxx",
         taskId: taskId,
         amount: 100,
@@ -109,7 +102,6 @@ async function createDistributorByEth(ethsData: EthersData) {
             wallet);
 
         console.log("rewardPerBatch ", await distributor.getRewardPerBatch());
-        console.log("eth balance ", await distributor.getEthBalance());
         console.log("token balance ", await distributor.getTokenBalance());
 
         //
@@ -118,7 +110,7 @@ async function createDistributorByEth(ethsData: EthersData) {
     const withdrawAddress = ethsData.accounts[0].address;
     console.log("withdrawAddress ", withdrawAddress);
 
-    const txs = await distributorFactory.withdrawETH(distributorAddress, 100, withdrawAddress);
+    const txs = await distributorFactory.withdrawETH(distributorAddress, MAX_UINT_AMOUNT, withdrawAddress);
     console.log("txs ", txs.hash);
     await txs.wait();
     

@@ -28,6 +28,13 @@ contract DistributorFactory is BondUpgradeable {
         return REVISION;
     }
 
+    /**
+     * @dev Get WETH address
+     */
+    function getWETHAddress() external view returns (address) {
+        return address(_IWETH);
+    }
+
     function createDistributorByToken(
         Types.CreateDistributorParams calldata params
     ) external returns (address) {
@@ -67,21 +74,30 @@ contract DistributorFactory is BondUpgradeable {
     function createDistributorByEth(
         Types.CreateDistributorParams calldata params
     ) external payable returns (address) {
-        console.log("msg.value %s,%s ", msg.value,params.amount);
+        
+        console.log("msg.value %s,%s ", msg.value, params.amount);
 
         require(msg.value >= params.amount, "Not enough ETH sent");
+        Types.CreateDistributorParams memory tmpParams;
+        tmpParams.aggregatorAddress = params.aggregatorAddress;
+        tmpParams.token = address(_IWETH);
+        tmpParams.projectId = params.projectId;
+        tmpParams.taskId = params.taskId;
+        tmpParams.amount = params.amount;
+        tmpParams.startTimestamp = params.startTimestamp;
+        tmpParams.endTimestamp = params.endTimestamp;
+        tmpParams.rewardPerBatch = params.rewardPerBatch;        
         //
         (bytes32 taskId, address distributorAddress) = _createDistributor(
-            params
+            tmpParams
         );
-       
+
         _IWETH.deposit{value: msg.value}();
 
         console.log("IWETH deposit %s ", msg.value);
 
-         _IWETH.transfer(distributorAddress, params.amount);
-       //_IWETH.transferFrom(msg.sender, distributorAddress, params.amount);
-        
+        _IWETH.transfer(distributorAddress, params.amount);
+
         console.log("IWETH transfer %s ", params.amount);
 
         _taskItems[taskId] = distributorAddress;
@@ -129,32 +145,33 @@ contract DistributorFactory is BondUpgradeable {
         uint256 amount,
         address to
     ) external {
-        console.log("distributorAddress %s ", distributorAddress);
+    
+        uint256 userBalance = IMerkleDistributor(distributorAddress)
+            .getTokenBalance();
 
-        uint256 userBalance = IMerkleDistributor(distributorAddress).getTokenBalance();
-
-        console.log("userBalance %s ", userBalance);
+        console.log("distributorAddress %s userBalance %s ",distributorAddress, userBalance);
 
         uint256 amountToWithdraw = amount;
-        if (amount > userBalance ) {
+        // if amount is equal to uint(-1), the user wants to redeem everything
+        if (amount == type(uint256).max) {
             amountToWithdraw = userBalance;
         }
 
         console.log("amountToWithdraw %s ", amountToWithdraw);
 
         IMerkleDistributor(distributorAddress).withdraw(amountToWithdraw);
- 
-        console.log("Balance %s %s ",getTokenBalance(),amountToWithdraw);
-        
+
+        console.log("Balance %s %s ", getTokenBalance(), amountToWithdraw);
+
         _IWETH.withdraw(amountToWithdraw);
 
-        console.log("safeTransferETH %s %s ",to,amountToWithdraw); 
-        
+        console.log("safeTransferETH %s %s ", to, amountToWithdraw);
+
         _safeTransferETH(to, amountToWithdraw);
     }
 
     function _createDistributor(
-        Types.CreateDistributorParams calldata params
+        Types.CreateDistributorParams memory params
     ) private returns (bytes32, address) {
         bytes32 taskId = keccak256(bytes(params.taskId));
         if (_taskItems[taskId] != address(0)) {
@@ -181,5 +198,19 @@ contract DistributorFactory is BondUpgradeable {
 
     function getTokenBalance() internal view returns (uint256) {
         return _IWETH.balanceOf(address(this));
+    }
+
+    /**
+     * @dev Only WETH contract is allowed to transfer ETH here. Prevent other addresses to send Ether to this contract.
+     */
+    receive() external payable {
+        require(msg.sender == address(_IWETH), "Receive not allowed");
+    }
+
+    /**
+     * @dev Revert fallback calls
+     */
+    fallback() external payable {
+        revert("Fallback not allowed");
     }
 }
