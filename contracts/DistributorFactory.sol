@@ -15,13 +15,13 @@ contract DistributorFactory is BondUpgradeable {
     using SafeERC20 for IERC20;
 
     uint32 internal constant REVISION = 5;
-    address internal  _wethMainnet;
+    IWETH internal _IWETH;
 
     mapping(bytes32 taskId => address distributor) internal _taskItems;
 
-    function initialize(address wethMainnet) external initializer {
+    function initialize(address wethAddress) external initializer {
         __BondUpgradeable_init();
-        _wethMainnet = wethMainnet;
+        _IWETH = IWETH(wethAddress);
     }
 
     function getVersion() external pure returns (uint32) {
@@ -67,7 +67,7 @@ contract DistributorFactory is BondUpgradeable {
     function createDistributorByEth(
         Types.CreateDistributorParams calldata params
     ) external payable returns (address) {
-        console.log("msg.value %s ", msg.value);
+        console.log("msg.value %s,%s ", msg.value,params.amount);
 
         require(msg.value >= params.amount, "Not enough ETH sent");
         //
@@ -75,12 +75,13 @@ contract DistributorFactory is BondUpgradeable {
             params
         );
 
-        //_transferETH(distributorAddress, params.amount);
-        IWETH(params.token).transferFrom(
-            msg.sender,
-            distributorAddress,
-            params.amount
-        );
+        _IWETH.deposit{value: msg.value}();
+
+        console.log("_IWETH deposit %s ", msg.value);
+
+        _IWETH.transferFrom(msg.sender, distributorAddress, params.amount);
+        
+        console.log("_IWETH transferFrom %s ", params.amount);
 
         _taskItems[taskId] = distributorAddress;
 
@@ -126,14 +127,18 @@ contract DistributorFactory is BondUpgradeable {
         address distributorAddress,
         uint256 amount,
         address to
-    ) external  {
-        address tokenAddress = IMerkleDistributor(distributorAddress).token();
-        if(!_isWETH(tokenAddress)) {
-            revert Errors.InvalidWETHAddress();
+    ) external {
+        uint256 userBalance = IMerkleDistributor(distributorAddress).getTokenBalance();
+        uint256 amountToWithdraw = amount;
+        // if amount is equal to uint(-1), the user wants to redeem everything
+        if (amount == type(uint256).max) {
+            amountToWithdraw = userBalance;
         }
-        IMerkleDistributor(distributorAddress).withdraw(amount);
-        IWETH(tokenAddress).withdraw(amount);
-        _safeTransferETH(to, amount);
+        IMerkleDistributor(distributorAddress).withdraw(amountToWithdraw);
+        withdrawWETH(amountToWithdraw);
+
+        console.log("Balance %s %s",getContractBalance(),amountToWithdraw);
+        _safeTransferETH(to, amountToWithdraw);
     }
 
     function _createDistributor(
@@ -143,7 +148,9 @@ contract DistributorFactory is BondUpgradeable {
         if (_taskItems[taskId] != address(0)) {
             revert Errors.TaskItemAlreadyExist();
         }
-        address distributorAddress = address(new MerkleDistributor(address(this),params));
+        address distributorAddress = address(
+            new MerkleDistributor(address(this), params)
+        );
         console.log("new distributor: %s ", distributorAddress);
         return (taskId, distributorAddress);
     }
@@ -160,7 +167,12 @@ contract DistributorFactory is BondUpgradeable {
         }
     }
 
-    function _isWETH(address tokenAddress) private view returns (bool) {
-        return tokenAddress == _wethMainnet;
+    function withdrawWETH(uint256 amount) internal {
+        require(amount <= address(this).balance, "Not enough balance");
+        _IWETH.withdraw(amount);
+    }
+
+    function getContractBalance() internal view returns (uint256) {
+        return address(this).balance;
     }
 }

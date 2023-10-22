@@ -6,13 +6,20 @@ import { checkContractProxy, checkDeployContract, deployContract, deployProxy, u
 export const deployDistributorFactory = async (ethsData: EthersData, verify: boolean = false) => {
     let contractAddress = ethsData.contractAddress;
     const name = 'DistributorFactory';
+    let wethAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    if (ethsData.network == 'sepolia') {
+        wethAddress = "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9";
+    }
+
     if (checkDeployContract(contractAddress.distributorFactory)) {
         console.log(`\n\t--- Deploying ${name} ---`);        
         if (checkContractProxy(contractAddress.distributorFactory)) {
             console.log('deploy proxy distributor factory');
             contractAddress.distributorFactory = await deployProxy(name,
                 {
-
+                    args: [
+                        wethAddress
+                    ]
                 },
                 verify
             );

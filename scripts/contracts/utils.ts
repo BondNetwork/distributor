@@ -103,6 +103,7 @@ export async function deployProxy(
     verify: boolean = false,
 ): Promise<ContractData> {
     console.log(``);
+    console.log(params.args);
     const contractFactory = await ethers.getContractFactory(name, params.options);
     const proxy = await upgrades.deployProxy(
         contractFactory,
