@@ -38,7 +38,7 @@ contract MerkleDistributor is
     mapping(uint256 => Types.IndexValue) internal _claimedBitMap;
     Types.KeyFlag[] internal _claimedkeys;
 
-    constructor(address factory,Types.CreateDistributorParams memory params)  {
+    constructor(address factory, Types.CreateDistributorParams memory params) {
         _factory = factory;
         _merkleAggregator = AggregatorMerkleInterface(params.aggregatorAddress);
         _token = params.token;
@@ -51,7 +51,7 @@ contract MerkleDistributor is
     }
 
     modifier onlyOwnerOrFactory() {
-         if (msg.sender != _factory && msg.sender != owner() ) {
+        if (msg.sender != _factory && msg.sender != owner()) {
             revert Errors.NeitherFactoryNorOwner();
         }
         _;
@@ -105,7 +105,14 @@ contract MerkleDistributor is
             address(this)
         );
         IERC20(_token).transfer(account, amount);
-        emit Claimed(batch, index, account, amount);
+        emit Claimed(
+            string(abi.encodePacked(_projectId)),
+            string(abi.encodePacked(_taskId)),
+            batch,
+            index,
+            account,
+            amount
+        );
         return true;
     }
 
