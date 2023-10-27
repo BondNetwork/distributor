@@ -27,10 +27,10 @@ interface IMerkleDistributor {
 
     // This event is triggered whenever a call to #claim succeeds.
     event Claimed(
-        string  indexed projectId,
-        string  taskId,
-        uint256 indexed batch,
-        uint256 indexed index,
+        string indexed projectId,
+        string taskId,
+        uint256 batch,
+        uint256 index,
         address account,
         uint256 amount
     );

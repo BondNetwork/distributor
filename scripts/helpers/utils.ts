@@ -1,4 +1,5 @@
 
+import { EthersError } from 'ethers';
 import fs from 'fs';
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 export const MAX_UINT_AMOUNT =
@@ -33,3 +34,11 @@ export async function saveContractsAddresses(network: string, addrs: any) {
     fs.writeFileSync(`address-${network}.json`, json, 'utf-8');
     console.log(addrs);
 }
+
+ export function getErrorMessage(e: Error): string {
+    const ethersError = e as EthersError
+    if (ethersError.info) {
+        return ethersError.info.error.message;
+    }
+    return e.message;
+};

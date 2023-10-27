@@ -15,6 +15,10 @@ library Types {
         uint256 rewardPerBatch;
     }
 
+    struct DistributorData {
+        address distributor;
+        address owner;
+    }
     struct IndexValue {
         uint256 keyIndex;
         bool value;

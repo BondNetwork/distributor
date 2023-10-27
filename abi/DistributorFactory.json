@@ -6,7 +6,17 @@
   },
   {
     "inputs": [],
+    "name": "NotOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "TaskItemAlreadyExist",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TaskItemNoExist",
     "type": "error"
   },
   {

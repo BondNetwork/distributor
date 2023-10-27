@@ -14,10 +14,10 @@ import "hardhat/console.sol";
 contract DistributorFactory is BondUpgradeable {
     using SafeERC20 for IERC20;
 
-    uint32 internal constant REVISION = 5;
+    uint32 internal constant REVISION = 1;
     IWETH internal _IWETH;
 
-    mapping(bytes32 taskId => address distributor) internal _taskItems;
+    mapping(bytes32 taskId => Types.DistributorData data) internal _taskItems;
 
     function initialize(address wethAddress) external initializer {
         __BondUpgradeable_init();
@@ -38,6 +38,8 @@ contract DistributorFactory is BondUpgradeable {
     function createDistributorByToken(
         Types.CreateDistributorParams calldata params
     ) external returns (address) {
+        console.log("token ", params.token);
+
         (bytes32 taskId, address distributorAddress) = _createDistributor(
             params
         );
@@ -58,7 +60,8 @@ contract DistributorFactory is BondUpgradeable {
                 params.amount
             );
         }
-        _taskItems[taskId] = distributorAddress;
+        _taskItems[taskId].distributor = distributorAddress;
+        _taskItems[taskId].owner = msg.sender;
         emit Events.DistributorCreated(
             params.projectId,
             params.taskId,
@@ -74,7 +77,6 @@ contract DistributorFactory is BondUpgradeable {
     function createDistributorByEth(
         Types.CreateDistributorParams calldata params
     ) external payable returns (address) {
-        
         console.log("msg.value %s,%s ", msg.value, params.amount);
 
         require(msg.value >= 0, "Not enough ETH sent");
@@ -86,7 +88,7 @@ contract DistributorFactory is BondUpgradeable {
         tmpParams.amount = msg.value;
         tmpParams.startTimestamp = params.startTimestamp;
         tmpParams.endTimestamp = params.endTimestamp;
-        tmpParams.rewardPerBatch = params.rewardPerBatch;        
+        tmpParams.rewardPerBatch = params.rewardPerBatch;
         //
         (bytes32 taskId, address distributorAddress) = _createDistributor(
             tmpParams
@@ -98,7 +100,8 @@ contract DistributorFactory is BondUpgradeable {
 
         console.log("IWETH transfer %s ", tmpParams.amount);
 
-        _taskItems[taskId] = distributorAddress;
+        _taskItems[taskId].distributor = distributorAddress;
+        _taskItems[taskId].owner = msg.sender;
 
         emit Events.DistributorCreated(
             tmpParams.projectId,
@@ -115,12 +118,19 @@ contract DistributorFactory is BondUpgradeable {
     function updateDistributor(
         Types.CreateDistributorParams calldata params
     ) external {
-        (bytes32 taskId, address distributorAddress) = _createDistributor(
-            params
+        bytes32 taskId = keccak256(bytes(params.taskId));
+        address oldAddress = _taskItems[taskId].distributor;
+        if (oldAddress == address(0)) {
+            revert Errors.TaskItemNoExist();
+        }
+        if (msg.sender != _taskItems[taskId].owner) {
+            revert Errors.NotOwner();
+        }
+        address distributorAddress = address(
+            new MerkleDistributor(address(this), params)
         );
-        address oldAddress = _taskItems[taskId];
-        _taskItems[taskId] = distributorAddress;
-
+        console.log("update distributor: %s ", distributorAddress);
+        _taskItems[taskId].distributor = distributorAddress;
         emit Events.DistributorUpdate(
             params.projectId,
             params.taskId,
@@ -135,7 +145,7 @@ contract DistributorFactory is BondUpgradeable {
         string memory taskId
     ) external view returns (address) {
         bytes32 id = keccak256(bytes(taskId));
-        return _taskItems[id];
+        return _taskItems[id].distributor;
     }
 
     function withdrawETH(
@@ -143,11 +153,14 @@ contract DistributorFactory is BondUpgradeable {
         uint256 amount,
         address to
     ) external {
-    
         uint256 userBalance = IMerkleDistributor(distributorAddress)
             .getTokenBalance();
 
-        console.log("distributorAddress %s userBalance %s ",distributorAddress, userBalance);
+        console.log(
+            "distributorAddress %s userBalance %s ",
+            distributorAddress,
+            userBalance
+        );
 
         uint256 amountToWithdraw = amount;
         // if amount is equal to uint(-1), the user wants to redeem everything
@@ -168,7 +181,7 @@ contract DistributorFactory is BondUpgradeable {
         Types.CreateDistributorParams memory params
     ) private returns (bytes32, address) {
         bytes32 taskId = keccak256(bytes(params.taskId));
-        if (_taskItems[taskId] != address(0)) {
+        if (_taskItems[taskId].distributor != address(0)) {
             revert Errors.TaskItemAlreadyExist();
         }
         address distributorAddress = address(

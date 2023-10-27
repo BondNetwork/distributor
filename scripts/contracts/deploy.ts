@@ -70,3 +70,20 @@ export const deployWETH = async (ethsData: EthersData) => {
             false);
     }
 }
+
+export const deployWBTC = async (ethsData: EthersData) => {
+    let contractAddress = ethsData.contractAddress;
+    if (checkDeployContract(contractAddress.wbtc)) {
+        console.log("\n\t--- Deploying WBTC---");
+        contractAddress.wbtc = await deployContract(
+            "FaucetToken",
+            {
+                args: [
+                    'Wrapped Bitcoin',
+                    'WBTC',
+                    8
+                ]
+            },
+            false);
+    }
+}

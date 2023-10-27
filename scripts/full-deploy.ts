@@ -1,6 +1,6 @@
 
 import { ethers } from "hardhat";
-import { deployDistributorFactory, deployMyToken, deployWETH } from "./contracts/deploy";
+import { deployDistributorFactory, deployMyToken, deployWBTC, deployWETH } from "./contracts/deploy";
 import { loadEthersData } from "./helpers/ethers-data";
 import { saveContractsAddresses } from "./helpers/utils";
 
@@ -10,6 +10,7 @@ async function main() {
 
     if (ethsData.network == 'localhost') {
 
+        await deployWBTC(ethsData);
         await deployWETH(ethsData);
         await deployMyToken(ethsData);
 

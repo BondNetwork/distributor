@@ -72,7 +72,7 @@ contract MerkleDistributor is
     function getTokenBalance() external view returns (uint256) {
         return IERC20(_token).balanceOf(address(this));
     }
-
+  
     function isClaimed(
         uint256 batch,
         uint256 index
