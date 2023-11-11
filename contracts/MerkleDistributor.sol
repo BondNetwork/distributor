@@ -22,8 +22,8 @@ contract MerkleDistributor is
     AggregatorMerkleInterface internal _merkleAggregator;
     address internal _factory;
     address internal _token;
-    bytes32 internal _projectId;
-    bytes32 internal _taskId;
+    string internal _projectId;
+    string internal _taskId;
     uint256 internal _taskAmount;
     uint256 internal _taskStartTimestamp;
     uint256 internal _taskEndTimestamp;
@@ -42,8 +42,8 @@ contract MerkleDistributor is
         _factory = factory;
         _merkleAggregator = AggregatorMerkleInterface(params.aggregatorAddress);
         _token = params.token;
-        _projectId = keccak256(bytes(params.projectId));
-        _taskId = keccak256(bytes(params.taskId));
+        _projectId = params.projectId;
+        _taskId = params.taskId;
         _taskAmount = params.amount;
         _taskStartTimestamp = params.startTimestamp;
         _taskEndTimestamp = params.endTimestamp;
@@ -72,7 +72,7 @@ contract MerkleDistributor is
     function getTokenBalance() external view returns (uint256) {
         return IERC20(_token).balanceOf(address(this));
     }
-  
+
     function isClaimed(
         uint256 batch,
         uint256 index
@@ -106,12 +106,13 @@ contract MerkleDistributor is
         );
         IERC20(_token).transfer(account, amount);
         emit Claimed(
-            string(abi.encodePacked(_projectId)),
-            string(abi.encodePacked(_taskId)),
+            _projectId,
+            _taskId,
             batch,
             index,
             account,
-            amount
+            amount,
+            block.timestamp
         );
         return true;
     }
@@ -130,8 +131,8 @@ contract MerkleDistributor is
     {
         return (
             _token,
-            string(abi.encodePacked(_projectId)),
-            string(abi.encodePacked(_taskId)),
+            _projectId,
+            _taskId,
             _taskAmount,
             _taskStartTimestamp,
             _taskEndTimestamp
@@ -142,20 +143,22 @@ contract MerkleDistributor is
         require(amount > 0, "Deposit: Amount must be > 0");
         IERC20(_token).safeTransferFrom(msg.sender, address(this), amount);
         emit Events.DistributorDeposit(
-            string(abi.encodePacked(_projectId)),
-            string(abi.encodePacked(_taskId)),
+            _projectId,
+            _taskId,
             msg.sender,
-            amount
+            amount,
+            block.timestamp
         );
     }
 
     function withdraw(uint256 amount) external onlyOwnerOrFactory nonReentrant {
         IERC20(_token).safeTransfer(msg.sender, amount);
         emit Events.DistributorWithdraw(
-            string(abi.encodePacked(_projectId)),
-            string(abi.encodePacked(_taskId)),
+            _projectId,
+            _taskId,
             msg.sender,
-            amount
+            amount,
+            block.timestamp
         );
     }
 
@@ -171,15 +174,14 @@ contract MerkleDistributor is
         if (_merkleAggregator.isLocked()) {
             return false;
         }
+
         (
             uint80 roundIdNew,
             uint256 curBatchNew,
             bytes32 merkleRootNew,
             uint256 startedAtNew,
             uint256 updatedAtNew
-        ) = _merkleAggregator.latestMerkleRoundData(
-                string(abi.encodePacked(_taskId))
-            );
+        ) = _merkleAggregator.latestMerkleRoundData(_taskId);
 
         if (curBatchNew != _curBatch) {
             uint256 arrayLength = _claimedkeys.length;

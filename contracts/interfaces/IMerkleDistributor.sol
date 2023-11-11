@@ -32,7 +32,8 @@ interface IMerkleDistributor {
         uint256 batch,
         uint256 index,
         address account,
-        uint256 amount
+        uint256 amount,
+        uint256 timestamp
     );
 
     function withdraw(uint256 amount) external;

@@ -36,7 +36,7 @@ export function checkContractProxy(contract: ContractData): boolean {
 
 
 
-async function verifyContract(
+export async function verifyContract(
     name: string,
     contractAddress: string,
     args?: any

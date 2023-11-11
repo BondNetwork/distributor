@@ -26,13 +26,15 @@ library Events {
         string indexed projectId,
         string taskId,
         address user,
-        uint256 amount
+        uint256 amount,
+        uint256 timestamp
     );
 
     event DistributorWithdraw(
         string indexed projectId,
         string taskId,
         address user,
-        uint256 amount
+        uint256 amount,
+        uint256 timestamp
     );
 }
