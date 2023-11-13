@@ -106,11 +106,11 @@ contract MerkleDistributor is
         );
         IERC20(_token).transfer(account, amount);
         emit Claimed(
+            account,
             _projectId,
             _taskId,
             batch,
             index,
-            account,
             amount,
             block.timestamp
         );

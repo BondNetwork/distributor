@@ -4,8 +4,8 @@ pragma solidity >=0.8.0;
 
 library Events {
     event DistributorCreated(
-        string indexed projectId,
-        string taskId,
+        string  projectId,
+        string  taskId,
         address deployer,
         address distributorAddress,
         address tokenAddress,
@@ -14,8 +14,8 @@ library Events {
     );
 
     event DistributorUpdate(
-        string indexed projectId,
-        string taskId,
+        string  projectId,
+        string  taskId,
         address deployer,
         address oldDistributorAddress,
         address newDistributorAddress,
@@ -23,16 +23,16 @@ library Events {
     );
 
     event DistributorDeposit(
-        string indexed projectId,
-        string taskId,
+        string  projectId,
+        string  taskId,
         address user,
         uint256 amount,
         uint256 timestamp
     );
 
     event DistributorWithdraw(
-        string indexed projectId,
-        string taskId,
+        string  projectId,
+        string  taskId,
         address user,
         uint256 amount,
         uint256 timestamp
