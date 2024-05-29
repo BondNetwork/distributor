@@ -148,6 +148,14 @@ contract DistributorFactory is BondUpgradeable {
         return _taskItems[id].distributor;
     }
 
+    function depositETH(
+        address distributorAddress
+    ) external payable{
+        _IWETH.deposit{value:  msg.value}();
+        _IWETH.transfer(distributorAddress,  msg.value);
+        console.log("depositETH %s ",  msg.value);
+    }
+
     function withdrawETH(
         address distributorAddress,
         uint256 amount,

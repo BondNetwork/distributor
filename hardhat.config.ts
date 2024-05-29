@@ -6,6 +6,7 @@ import '@openzeppelin/hardhat-upgrades';
 import { ETHERSCAN_BLOCK_EXPLORER_KEY } from "./utils/config";
 import { Sepolia, getNetworkConfig } from "./utils/network";
 
+
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.19",
@@ -23,6 +24,16 @@ const config: HardhatUserConfig = {
     apiKey: {
       sepolia: ETHERSCAN_BLOCK_EXPLORER_KEY,
     },
+    customChains: [
+      {
+        network: "sepolia",
+        chainId: 11155111,
+        urls: {
+          apiURL: "http://api-sepolia.etherscan.io/api",  // https => http
+          browserURL: "https://sepolia.etherscan.io"
+        }
+      }
+    ]
   },
   gasReporter: {
     enabled: true,

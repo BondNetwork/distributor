@@ -28,7 +28,7 @@ export const deployDistributorFactory = async (ethsData: EthersData, verify: boo
                 },
                 verify
             );
-
+             
         } else {
             console.log('upgrade proxy distributor factory');
             contractAddress.distributorFactory = await upgradeProxy(

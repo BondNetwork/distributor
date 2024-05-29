@@ -1,8 +1,9 @@
 
-import { ethers } from "hardhat";
+import { ethers,upgrades } from "hardhat";
 import { deployDistributorFactory, deployMyToken, deployWBTC, deployWETH } from "./contracts/deploy";
 import { loadEthersData } from "./helpers/ethers-data";
 import { saveContractsAddresses } from "./helpers/utils";
+
 
 async function main() {
 
@@ -15,7 +16,7 @@ async function main() {
         await deployMyToken(ethsData);
 
     }
-
+   
     await deployDistributorFactory(ethsData, ethsData.network === 'localhost' ? false : true);
   
     saveContractsAddresses(ethsData.network, ethsData.contractAddress);

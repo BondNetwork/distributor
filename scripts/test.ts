@@ -3,6 +3,7 @@ import { EthersData, loadEthersData } from "./helpers/ethers-data";
 import { MAX_UINT_AMOUNT, ZERO_ADDRESS, getErrorMessage, } from "./helpers/utils";
 import { Types } from "../typechain-types/contracts/DistributorFactory";
 import { Contract,  parseUnits } from "ethers";
+import { string } from "hardhat/internal/core/params/argumentTypes";
 
 
 async function createDistributorByToken(ethsData: EthersData) {
@@ -234,15 +235,42 @@ async function createDistributorByEth(ethsData: EthersData) {
 
 
 }
+
+async function depositETH(ethsData: EthersData) {
+    const wallet = ethsData.deployer;
+    console.log("wallet ", wallet);
+    const contractAddress = ethsData.contractAddress;
+    const distributorFactory = await ethers.getContractAt("DistributorFactory",
+        contractAddress.distributorFactory.proxy,
+        wallet);
+    console.log("distributorFactory address", await distributorFactory.getAddress());
+    console.log("distributorFactory version", (await distributorFactory.getVersion()).toString());
+    const distributorAddress = "0xe73bc5BD4763A3307AB5F8F126634b7E12E3dA9b";
+    const distributor = await ethers.getContractAt("MerkleDistributor",
+    distributorAddress,
+    wallet);
+    console.log("rewardPerBatch ", await distributor.getRewardPerBatch());
+    console.log("token balance ", await distributor.getTokenBalance());
+    const value = parseUnits('300', 'wei') //parseEther('0.0003'); // 0.001 ETH
+    const gasPrice = parseUnits('5', 'gwei')
+    console.log("gasPrice ", gasPrice);
+    const transaction = await distributorFactory.depositETH(distributorAddress,
+        {
+            value: value, 
+            gasPrice: gasPrice
+        });
+    await transaction.wait();
+    console.log("txs ", transaction.hash);
+    console.log("token new balance ", await distributor.getTokenBalance());
+}
 async function main() {
 
     const ethsData = await loadEthersData();
     
-    await updateDistributorByToken(ethsData);
+    //await updateDistributorByToken(ethsData);
     //await createDistributorByToken(ethsData);
     //await createDistributorByEth(ethsData);
-
-   
+    //await depositETH(ethsData);
 }
 
 

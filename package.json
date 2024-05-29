@@ -41,6 +41,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.3",
     "@openzeppelin/contracts-upgradeable": "^4.9.3",
+    "@openzeppelin/upgrades-core": "^1.33.1",
     "hardhat-contract-sizer": "^2.10.0"
   }
 }
