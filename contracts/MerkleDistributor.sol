@@ -11,6 +11,7 @@ import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {Types} from "contracts/libraries/Types.sol";
 import {Events} from "contracts/libraries/Events.sol";
 import {Errors} from "contracts/libraries/Errors.sol";
+import {IWETH} from "contracts/interfaces/IWETH.sol";
 
 contract MerkleDistributor is
     IMerkleDistributor,
@@ -142,6 +143,18 @@ contract MerkleDistributor is
     function deposit(uint256 amount) external onlyOwnerOrFactory nonReentrant {
         require(amount > 0, "Deposit: Amount must be > 0");
         IERC20(_token).safeTransferFrom(msg.sender, address(this), amount);
+        emit Events.DistributorDeposit(
+            _projectId,
+            _taskId,
+            msg.sender,
+            amount,
+            block.timestamp
+        );
+    }
+
+    function deposit_eth(uint256 amount) external onlyOwnerOrFactory nonReentrant {
+        require(amount > 0, "Deposit: Amount must be > 0");
+        IWETH(_token).transfer(address(this), amount);
         emit Events.DistributorDeposit(
             _projectId,
             _taskId,

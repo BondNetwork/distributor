@@ -14,7 +14,7 @@ import "hardhat/console.sol";
 contract DistributorFactory is BondUpgradeable {
     using SafeERC20 for IERC20;
 
-    uint32 internal constant REVISION = 1;
+    uint32 internal constant REVISION = 2;
     IWETH internal _IWETH;
 
     mapping(bytes32 taskId => Types.DistributorData data) internal _taskItems;
@@ -154,6 +154,21 @@ contract DistributorFactory is BondUpgradeable {
         _IWETH.deposit{value:  msg.value}();
         _IWETH.transfer(distributorAddress,  msg.value);
         console.log("depositETH %s ",  msg.value);
+        address token;
+        string memory projectId;
+        string memory taskId;
+        uint256 taskAmount;
+        uint256 taskStartTimestamp;
+        uint256 taskEndTimestamp;
+        (token, projectId, taskId, taskAmount, taskStartTimestamp, taskEndTimestamp) = IMerkleDistributor(distributorAddress).taskBaseInfo();
+        console.log("event DistributorDepositpid=%s, tid=%s", projectId, taskId);
+        emit Events.DistributorDeposit(
+            projectId,
+            taskId,
+            msg.sender,
+            msg.value,
+            block.timestamp
+        );
     }
 
     function withdrawETH(

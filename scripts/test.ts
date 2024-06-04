@@ -236,7 +236,7 @@ async function createDistributorByEth(ethsData: EthersData) {
 
 }
 
-async function depositETH(ethsData: EthersData) {
+async function depositETH(ethsData: EthersData, distributorAddress: string) {
     const wallet = ethsData.deployer;
     console.log("wallet ", wallet);
     const contractAddress = ethsData.contractAddress;
@@ -245,7 +245,6 @@ async function depositETH(ethsData: EthersData) {
         wallet);
     console.log("distributorFactory address", await distributorFactory.getAddress());
     console.log("distributorFactory version", (await distributorFactory.getVersion()).toString());
-    const distributorAddress = "0xe73bc5BD4763A3307AB5F8F126634b7E12E3dA9b";
     const distributor = await ethers.getContractAt("MerkleDistributor",
     distributorAddress,
     wallet);
@@ -266,11 +265,10 @@ async function depositETH(ethsData: EthersData) {
 async function main() {
 
     const ethsData = await loadEthersData();
-    
     //await updateDistributorByToken(ethsData);
     //await createDistributorByToken(ethsData);
-    //await createDistributorByEth(ethsData);
-    //await depositETH(ethsData);
+    await createDistributorByEth(ethsData);
+    //await depositETH(ethsData, "0x1F708C24a0D3A740cD47cC0444E9480899f3dA7D");
 }
 
 

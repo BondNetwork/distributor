@@ -39,4 +39,17 @@ interface IMerkleDistributor {
     function withdraw(uint256 amount) external;
 
     function getTokenBalance() external view returns (uint256);
+
+    function deposit_eth(uint256 amount) external;
+
+    function deposit(uint256 amount) external;
+
+    function taskBaseInfo() external view returns (
+            address,
+            string memory,
+            string memory,
+            uint256,
+            uint256,
+            uint256
+        );
 }
