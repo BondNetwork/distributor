@@ -52,4 +52,6 @@ interface IMerkleDistributor {
             uint256,
             uint256
         );
+
+    function changeOwner(address newOwner) external;
 }

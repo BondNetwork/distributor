@@ -211,6 +211,7 @@ contract DistributorFactory is BondUpgradeable {
             new MerkleDistributor(address(this), params)
         );
         console.log("new distributor: %s ", distributorAddress);
+        IMerkleDistributor(distributorAddress).changeOwner(msg.sender);
         return (taskId, distributorAddress);
     }
 

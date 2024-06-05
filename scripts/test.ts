@@ -17,7 +17,7 @@ async function createDistributorByToken(ethsData: EthersData) {
     console.log("distributorFactory version", (await distributorFactory.getVersion()).toString());
 
     let tokenAddress = ZERO_ADDRESS;
-    let tokenName = "FaucetToken";
+    let tokenName = "MyToken";
     if (ethsData.network === 'localhost') {       
         if (tokenName === "MyToken") {
             tokenAddress = ethsData.contractAddress.myToken.address;
@@ -77,20 +77,19 @@ async function createDistributorByToken(ethsData: EthersData) {
                 contractAddress.distributorFactory.proxy)).toString());
         }
     }
-
     const taskId = (new Date()).getTime().toString();
     console.log("taskId ", taskId);
-    // let params: Types.CreateDistributorParamsStruct = {
-    //     aggregatorAddress: ZERO_ADDRESS,
-    //     token: tokenAddress,
-    //     projectId: "xxxxx",
-    //     taskId: taskId,
-    //     amount: 200,
-    //     startTimestamp: 1697558400,
-    //     endTimestamp: 1698422400,
-    //     rewardPerBatch: 2
-    // }
-    const params: Types.CreateDistributorParamsStruct = {
+     let params: Types.CreateDistributorParamsStruct = {
+         aggregatorAddress: ZERO_ADDRESS,
+         token: tokenAddress,
+         projectId: "xxxxx",
+         taskId: taskId,
+         amount: 200,
+         startTimestamp: 1697558400,
+         endTimestamp: 1698422400,
+         rewardPerBatch: 2
+     }
+    /*const params: Types.CreateDistributorParamsStruct = {
         aggregatorAddress: '0xcD03049f5C5F55b17ba28821fe07d0E4ED8f4dD6',
         token: tokenAddress,
         projectId: "P63d9JlA21mKbznKDBaWbgQepZ",
@@ -99,7 +98,7 @@ async function createDistributorByToken(ethsData: EthersData) {
         startTimestamp: 1697558400,
         endTimestamp: 1698422400,
         rewardPerBatch: 2
-    }
+    }*/
     const transaction = await distributorFactory.createDistributorByToken(params);
 
     await transaction.wait();
@@ -262,13 +261,45 @@ async function depositETH(ethsData: EthersData, distributorAddress: string) {
     console.log("txs ", transaction.hash);
     console.log("token new balance ", await distributor.getTokenBalance());
 }
-async function main() {
 
+async function deposit(ethsData: EthersData, distributorAddress: string){
+    const wallet = ethsData.deployer;
+    console.log("wallet ", wallet);
+    const distributor = await ethers.getContractAt("MerkleDistributor",
+    distributorAddress,
+    wallet);
+    console.log("rewardPerBatch ", await distributor.getRewardPerBatch());
+    console.log("token balance ", await distributor.getTokenBalance());
+    const value = parseUnits('300', 'wei') //parseEther('0.0003'); // 0.001 ETH
+    const gasPrice = parseUnits('5', 'gwei')
+    console.log("gasPrice ", gasPrice);
+    const myToken = await ethers.getContractAt("MyToken",
+    ethsData.contractAddress.myToken.address,
+        wallet);
+    let balance = await myToken.balanceOf(wallet.address);
+    if (balance < 10000) {
+        const transaction = await myToken.transfer(wallet.address, 100000);
+        await transaction.wait();
+        balance = await myToken.balanceOf(wallet.address);
+    }
+    console.log("balance", balance);
+    await myToken.approve(distributorAddress, 30000);
+    console.log("my token approve....", (await myToken.allowance(wallet.address,
+        distributorAddress)).toString());
+
+    const transaction = await distributor.deposit(value);
+    await transaction.wait();
+    console.log("txs ", transaction.hash);
+    console.log("token new balance ", await distributor.getTokenBalance());
+}
+
+async function main() {
     const ethsData = await loadEthersData();
     //await updateDistributorByToken(ethsData);
     //await createDistributorByToken(ethsData);
-    await createDistributorByEth(ethsData);
+    //await createDistributorByEth(ethsData);
     //await depositETH(ethsData, "0x1F708C24a0D3A740cD47cC0444E9480899f3dA7D");
+    await deposit(ethsData, "0x8aCd85898458400f7Db866d53FCFF6f0D49741FF");
 }
 
 

@@ -232,4 +232,10 @@ contract MerkleDistributor is
         if (_curBatch != batch) return true;
         return _claimedBitMap[index].value;
     }
+
+    function changeOwner(address newOwner)onlyOwnerOrFactory external{
+        console.log("older owner:%s", owner());
+        transferOwnership(newOwner);
+        console.log("new owner:%s", owner());
+    }
 }
